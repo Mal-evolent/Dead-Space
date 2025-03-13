@@ -2,7 +2,7 @@
 #define SCENEBASIC_UNIFORM_H
 
 #include "helper/scene.h"
-
+#include "plane.h"
 #include <glad/glad.h>
 #include "helper/glslprogram.h"
 
@@ -12,6 +12,7 @@ private:
     GLuint vaoHandle;
     GLSLProgram prog;
     float angle;
+    Plane plane;
 
     void compile();
 

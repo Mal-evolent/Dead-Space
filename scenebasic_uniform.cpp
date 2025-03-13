@@ -1,4 +1,5 @@
 #include "scenebasic_uniform.h"
+#include "plane.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -17,7 +18,7 @@ using std::endl;
 using glm::vec3;
 using glm::mat4;
 
-SceneBasic_Uniform::SceneBasic_Uniform() : angle(0.0f) {}
+SceneBasic_Uniform::SceneBasic_Uniform() : angle(0.0f), plane(10.0f, 10.0f, 10, 10, 1.0f, 1.0f) {}
 
 void SceneBasic_Uniform::initScene()
 {
@@ -30,6 +31,8 @@ void SceneBasic_Uniform::initScene()
     // Set light and view positions
     prog.setUniform("lightPos", vec3(1.0f, 1.0f, 1.0f));
     prog.setUniform("viewPos", vec3(0.0f, 0.0f, 5.0f));
+
+
 }
 
 void SceneBasic_Uniform::compile()
@@ -57,7 +60,7 @@ void SceneBasic_Uniform::render()
 
     // Create the model, view, and projection matrices
     mat4 model = mat4(1.0f);
-    mat4 view = glm::lookAt(vec3(0.0f, 0.0f, 5.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+    mat4 view = glm::lookAt(vec3(0.0f, 5.0f, 5.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f)); // Adjusted to point at the plane
     mat4 projection = glm::perspective(glm::radians(45.0f), (float)width / height, 0.1f, 100.0f);
 
     // Set the uniforms in the shader
@@ -65,7 +68,8 @@ void SceneBasic_Uniform::render()
     prog.setUniform("view", view);
     prog.setUniform("projection", projection);
 
-    // No drawing code as the triangle has been removed
+    // Render the plane
+    plane.render();
 }
 
 void SceneBasic_Uniform::resize(int w, int h)
