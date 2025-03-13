@@ -3,26 +3,31 @@
 in vec3 Color;
 in vec3 Normal;
 in vec3 FragPos;
-in vec3 LightPos;
-in vec3 ViewPos;
 
 layout (location = 0) out vec4 FragColor;
 
+uniform vec3 lightPos;
+uniform vec3 viewPos;
+uniform vec3 ambientColor;
+uniform vec3 diffuseColor;
+uniform vec3 specularColor;
+uniform float shininess;
+
 void main() {
     // Ambient
-    vec3 ambient = 0.1 * Color;
+    vec3 ambient = ambientColor * Color;
 
     // Diffuse
     vec3 norm = normalize(Normal);
-    vec3 lightDir = normalize(LightPos - FragPos);
+    vec3 lightDir = normalize(lightPos - FragPos);
     float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = diff * Color;
+    vec3 diffuse = diff * diffuseColor * Color;
 
     // Specular
-    vec3 viewDir = normalize(ViewPos - FragPos);
+    vec3 viewDir = normalize(viewPos - FragPos);
     vec3 halfwayDir = normalize(lightDir + viewDir);
-    float spec = pow(max(dot(norm, halfwayDir), 0.0), 32.0);
-    vec3 specular = vec3(0.5) * spec; // Assuming a white specular light
+    float spec = pow(max(dot(norm, halfwayDir), 0.0), shininess);
+    vec3 specular = specularColor * spec;
 
     vec3 result = ambient + diffuse + specular;
     FragColor = vec4(result, 1.0);

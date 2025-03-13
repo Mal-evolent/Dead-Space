@@ -32,7 +32,11 @@ void SceneBasic_Uniform::initScene()
     prog.setUniform("lightPos", vec3(1.0f, 1.0f, 1.0f));
     prog.setUniform("viewPos", vec3(0.0f, 0.0f, 5.0f));
 
-
+    // Set ambient, diffuse, and specular components
+    prog.setUniform("ambientColor", vec3(0.1f, 0.1f, 0.1f));
+    prog.setUniform("diffuseColor", vec3(1.0f, 1.0f, 1.0f));
+    prog.setUniform("specularColor", vec3(0.5f, 0.5f, 0.5f));
+    prog.setUniform("shininess", 32.0f);
 }
 
 void SceneBasic_Uniform::compile()
