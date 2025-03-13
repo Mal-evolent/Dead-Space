@@ -5,6 +5,8 @@
 #include "plane.h"
 #include <glad/glad.h>
 #include "helper/glslprogram.h"
+#include "objmesh.h"
+#include "skybox.h"
 
 class SceneBasic_Uniform : public Scene
 {

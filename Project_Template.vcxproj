@@ -161,6 +161,8 @@
   <ItemGroup>
     <None Include="shader\basic_uniform.frag" />
     <None Include="shader\basic_uniform.vert" />
+    <None Include="shader\skybox_basic.frag" />
+    <None Include="shader\skybox_basic.vert" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="aabb.h" />
