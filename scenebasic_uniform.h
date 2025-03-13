@@ -6,7 +6,6 @@
 #include "helper/glslprogram.h"
 #include "skybox.h"
 #include "texture.h"
-#include "plane.h"
 
 class SceneBasic_Uniform : public Scene
 {
@@ -17,7 +16,6 @@ private:
     GLuint skyboxTex;
     float angle;
     SkyBox sky;
-    Plane plane;
 
     void compile();
 
