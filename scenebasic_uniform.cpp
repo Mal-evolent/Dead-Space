@@ -1,12 +1,8 @@
 #include "scenebasic_uniform.h"
-#include "plane.h"
-
 #include <cstdio>
 #include <cstdlib>
-
 #include <string>
 using std::string;
-
 #include <iostream>
 using std::cerr;
 using std::endl;
@@ -17,63 +13,94 @@ using std::endl;
 
 using glm::vec3;
 using glm::mat4;
+using glm::mat3;
 
-SceneBasic_Uniform::SceneBasic_Uniform() : angle(0.0f), plane(10.0f, 10.0f, 10, 10, 1.0f, 1.0f) {}
+SceneBasic_Uniform::SceneBasic_Uniform()
+    : angle(0.0f), sky(100.0f) {
+}
 
 void SceneBasic_Uniform::initScene()
 {
     compile();
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
 
+    model = mat4(1.0f);
     std::cout << std::endl;
-
     prog.printActiveUniforms();
 
-    // Set light and view positions
-    prog.setUniform("lightPos", vec3(1.0f, 6.0f, 1.0f));
-    prog.setUniform("viewPos", vec3(0.0f, 0.0f, 5.0f));
+    // Load Skybox Texture and Check
+    skyboxTex = Texture::loadCubeMap("media/textures/skybox/pisa");
+    if (skyboxTex == GLuint(0)) { 
+        cerr << "Error: Skybox texture failed to load!" << endl;
+        exit(EXIT_FAILURE);
+    }
+    else {
+        std::cout << "Skybox texture loaded successfully!" << std::endl;
+    }
 
-    // Set ambient, diffuse, and specular components
-    prog.setUniform("ambientColor", vec3(0.1f, 0.1f, 0.1f));
-    prog.setUniform("diffuseColor", vec3(1.0f, 1.0f, 1.0f));
-    prog.setUniform("specularColor", vec3(0.5f, 0.5f, 0.5f));
-    prog.setUniform("shininess", 32.0f);
-}
-
-void SceneBasic_Uniform::compile()
-{
+    // Skybox Shader Setup with Error Logging
     try {
-        prog.compileShader("shader/skybox_basic.vert");
-        prog.compileShader("shader/skybox_basic.frag");
-        prog.link();
-        prog.use();
+        skyboxProgram.compileShader("shader/skybox.vert");
+        skyboxProgram.compileShader("shader/skybox.frag");
+        skyboxProgram.link();
     }
     catch (GLSLProgramException& e) {
-        cerr << e.what() << endl;
+        cerr << "Skybox Shader Compilation Error: " << e.what() << endl;
         exit(EXIT_FAILURE);
     }
 }
 
-void SceneBasic_Uniform::update(float t)
+
+void SceneBasic_Uniform::compile()
 {
-    // Update your angle here
+    try {
+        prog.compileShader("shader/basic_uniform.vert");
+        prog.compileShader("shader/basic_uniform.frag");
+        prog.link();
+        prog.use();
+    }
+    catch (GLSLProgramException& e) {
+        cerr << "Shader Compilation Error: " << e.what() << endl;
+        exit(EXIT_FAILURE);
+    }
 }
+
+void SceneBasic_Uniform::update(float t) {}
 
 void SceneBasic_Uniform::render()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    std::cout << "Rendering frame..." << std::endl;
 
-    // Create the model, view, and projection matrices
-    mat4 model = mat4(1.0f);
-    mat4 view = glm::lookAt(vec3(0.0f, 5.0f, 5.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
-    mat4 projection = glm::perspective(glm::radians(45.0f), (float)width / height, 0.1f, 100.0f);
+    // Set up view and projection
+    view = glm::lookAt(
+        vec3(0.0f, 1.8f, 10.0f),  // Camera position: eye level on the street, looking forward
+        vec3(0.0f, 1.8f, 0.0f),   // Target: Looking straight ahead down the street
+        vec3(0.0f, 1.0f, 0.0f)    // Up vector: Keeping the "up" direction as world up
+    );
 
-    // Set the uniforms in the shader
-    prog.setUniform("model", model);
-    prog.setUniform("view", view);
-    prog.setUniform("projection", projection);
+    projection = glm::perspective(glm::radians(45.0f), (float)width / height, 0.1f, 100.0f);
 
-    // Render the plane
-    plane.render();
+    // Disable depth writing for skybox rendering
+    glDepthMask(GL_FALSE);
+
+    // Render Skybox
+    std::cout << "Using skybox program..." << std::endl;
+    skyboxProgram.use();
+
+    mat4 skyboxView = mat4(mat3(view)); // Remove translation
+    skyboxProgram.setUniform("view", skyboxView);
+    skyboxProgram.setUniform("projection", projection);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTex);
+
+    std::cout << "Rendering skybox..." << std::endl;
+    sky.render();
+
+    // Re-enable depth writing
+    glDepthMask(GL_TRUE);
 }
 
 void SceneBasic_Uniform::resize(int w, int h)
@@ -81,4 +108,12 @@ void SceneBasic_Uniform::resize(int w, int h)
     width = w;
     height = h;
     glViewport(0, 0, w, h);
+}
+
+void SceneBasic_Uniform::setMatrices()
+{
+    mat4 mv = view * model;
+    prog.setUniform("ModelViewMatrix", mv);
+    prog.setUniform("NormalMatrix", mat3(vec3(mv[0]), vec3(mv[1]), vec3(mv[2])));
+    prog.setUniform("MVP", projection * mv);
 }
