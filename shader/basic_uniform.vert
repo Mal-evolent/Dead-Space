@@ -7,6 +7,7 @@ layout (location = 2) in vec3 VertexNormal;
 out vec3 Color;
 out vec3 Normal;
 out vec3 FragPos;
+out vec3 TexCoords;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -17,7 +18,8 @@ uniform vec3 viewPos;
 void main()
 {
     Color = vec3(0.6f, 0.3f, 0.1f); // Brown color
-    Normal = mat3(transpose(inverse(model))) * VertexNormal; // Transform normal to world space
-    FragPos = vec3(model * vec4(VertexPosition, 1.0)); // Transform position to world space
+    Normal = mat3(transpose(inverse(model))) * VertexNormal;
+    FragPos = vec3(model * vec4(VertexPosition, 1.0));
+    TexCoords = VertexPosition;
     gl_Position = projection * view * model * vec4(VertexPosition, 1.0);
 }

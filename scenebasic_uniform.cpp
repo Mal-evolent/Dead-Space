@@ -29,7 +29,7 @@ void SceneBasic_Uniform::initScene()
     prog.printActiveUniforms();
 
     // Set light and view positions
-    prog.setUniform("lightPos", vec3(1.0f, 1.0f, 1.0f));
+    prog.setUniform("lightPos", vec3(1.0f, 6.0f, 1.0f));
     prog.setUniform("viewPos", vec3(0.0f, 0.0f, 5.0f));
 
     // Set ambient, diffuse, and specular components
