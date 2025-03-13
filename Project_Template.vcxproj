@@ -78,13 +78,13 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\Public\OpenGL\include;C:\Users\Public\OpenGL\include;$(IncludePath);C:\Users\Public\OpenGL\include</IncludePath>
-    <LibraryPath>C:\Users\Public\OpenGL\lib;C:\Program Files (x86)\Windows Kits\10\Lib\10.0.26100.0\um\x64;C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\lib\x64;C:\Program Files (x86)\Windows Kits\10\Lib\10.0.26100.0\ucrt\x64</LibraryPath>
+    <IncludePath>$(ProjectDir)helper\include</IncludePath>
+    <LibraryPath>$(ProjectDir)helper\lib;C:\Program Files (x86)\Windows Kits\10\Lib\10.0.26100.0\um\x64;C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\lib\x64;C:\Program Files (x86)\Windows Kits\10\Lib\10.0.26100.0\ucrt\x64</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Users\Public\OpenGL\include;C:\Dependencies\include;$(IncludePath);C:\Users\Public\OpenGL\include</IncludePath>
-    <LibraryPath>C:\Users\Public\OpenGL\lib;C:\Program Files (x86)\Windows Kits\10\Lib\10.0.26100.0\um\x64;C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\lib\x64;C:\Program Files (x86)\Windows Kits\10\Lib\10.0.26100.0\ucrt\x64</LibraryPath>
+    <IncludePath>$(ProjectDir)helper\include</IncludePath>
+    <LibraryPath>$(ProjectDir)helper\lib;C:\Program Files (x86)\Windows Kits\10\Lib\10.0.26100.0\um\x64;C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\lib\x64;C:\Program Files (x86)\Windows Kits\10\Lib\10.0.26100.0\ucrt\x64</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -145,24 +145,45 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="cube.cpp" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="helper\glslprogram.cpp" />
     <ClCompile Include="helper\glutils.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="objmesh.cpp" />
+    <ClCompile Include="plane.cpp" />
     <ClCompile Include="scenebasic_uniform.cpp" />
+    <ClCompile Include="skybox.cpp" />
+    <ClCompile Include="stb_image.cpp" />
+    <ClCompile Include="teapot.cpp" />
+    <ClCompile Include="texture.cpp" />
+    <ClCompile Include="torus.cpp" />
+    <ClCompile Include="trianglemesh.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shader\basic_uniform.frag" />
     <None Include="shader\basic_uniform.vert" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="aabb.h" />
+    <ClInclude Include="cube.h" />
+    <ClInclude Include="drawable.h" />
     <ClInclude Include="helper\glslprogram.h" />
     <ClInclude Include="helper\glutils.h" />
     <ClInclude Include="helper\scene.h" />
     <ClInclude Include="helper\scenerunner.h" />
     <ClInclude Include="helper\stb\stb_image.h" />
     <ClInclude Include="helper\stb\stb_image_write.h" />
+    <ClInclude Include="objmesh.h" />
+    <ClInclude Include="plane.h" />
     <ClInclude Include="scenebasic_uniform.h" />
+    <ClInclude Include="skybox.h" />
+    <ClInclude Include="teapot.h" />
+    <ClInclude Include="teapotdata.h" />
+    <ClInclude Include="texture.h" />
+    <ClInclude Include="torus.h" />
+    <ClInclude Include="trianglemesh.h" />
+    <ClInclude Include="utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
