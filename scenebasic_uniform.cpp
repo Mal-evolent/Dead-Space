@@ -64,7 +64,7 @@ void SceneBasic_Uniform::render()
 
     // Create the model, view, and projection matrices
     mat4 model = mat4(1.0f);
-    mat4 view = glm::lookAt(vec3(0.0f, 5.0f, 5.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f)); // Adjusted to point at the plane
+    mat4 view = glm::lookAt(vec3(0.0f, 5.0f, 5.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
     mat4 projection = glm::perspective(glm::radians(45.0f), (float)width / height, 0.1f, 100.0f);
 
     // Set the uniforms in the shader

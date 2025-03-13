@@ -16,7 +16,7 @@ uniform vec3 viewPos;
 
 void main()
 {
-    Color = VertexColor;
+    Color = vec3(0.6f, 0.3f, 0.1f); // Brown color
     Normal = mat3(transpose(inverse(model))) * VertexNormal; // Transform normal to world space
     FragPos = vec3(model * vec4(VertexPosition, 1.0)); // Transform position to world space
     gl_Position = projection * view * model * vec4(VertexPosition, 1.0);
