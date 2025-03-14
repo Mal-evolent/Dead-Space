@@ -26,17 +26,13 @@ void SceneBasic_Uniform::initScene()
     glDepthFunc(GL_LEQUAL);
 
     model = mat4(1.0f);
-    std::cout << std::endl;
     prog.printActiveUniforms();
 
     // Load Skybox Texture and Check
-    skyboxTex = Texture::loadCubeMap("media/textures/skybox/pisa");
-    if (skyboxTex == GLuint(0)) { 
+    skyboxTex = Texture::loadCubeMap("media/textures/skybox/nebula");
+    if (skyboxTex == GLuint(0)) {
         cerr << "Error: Skybox texture failed to load!" << endl;
         exit(EXIT_FAILURE);
-    }
-    else {
-        std::cout << "Skybox texture loaded successfully!" << std::endl;
     }
 
     // Skybox Shader Setup with Error Logging
@@ -50,7 +46,6 @@ void SceneBasic_Uniform::initScene()
         exit(EXIT_FAILURE);
     }
 }
-
 
 void SceneBasic_Uniform::compile()
 {
@@ -71,7 +66,6 @@ void SceneBasic_Uniform::update(float t) {}
 void SceneBasic_Uniform::render()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    std::cout << "Rendering frame..." << std::endl;
 
     // Set up view and projection
     view = glm::lookAt(
@@ -80,13 +74,12 @@ void SceneBasic_Uniform::render()
         vec3(0.0f, 1.0f, 0.0f)    // Up vector: Keeping the "up" direction as world up
     );
 
-    projection = glm::perspective(glm::radians(45.0f), (float)width / height, 0.1f, 100.0f);
+    projection = glm::perspective(glm::radians(75.0f), (float)width / height, 0.1f, 100.0f);
 
     // Disable depth writing for skybox rendering
     glDepthMask(GL_FALSE);
 
     // Render Skybox
-    std::cout << "Using skybox program..." << std::endl;
     skyboxProgram.use();
 
     mat4 skyboxView = mat4(mat3(view)); // Remove translation
@@ -96,7 +89,6 @@ void SceneBasic_Uniform::render()
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTex);
 
-    std::cout << "Rendering skybox..." << std::endl;
     sky.render();
 
     // Re-enable depth writing
