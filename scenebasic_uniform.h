@@ -17,6 +17,9 @@ private:
     GLSLProgram prog, skyboxProgram;
     GLuint skyboxTex;
     SkyBox sky;
+
+    GLuint spaceShipTex;
+
     std::unique_ptr<ObjMesh> mesh;
     glm::mat4 model, view, projection;
     float angle;

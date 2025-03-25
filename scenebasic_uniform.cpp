@@ -34,17 +34,15 @@ void SceneBasic_Uniform::initScene() {
         cerr << "[ERROR] Skybox texture failed to load!" << endl;
         exit(EXIT_FAILURE);
     }
-    cerr << "[DEBUG] Skybox texture loaded successfully." << endl;
 
-    skyboxProgram.compileShader("shader/skybox.vert");
-    skyboxProgram.compileShader("shader/skybox.frag");
-    skyboxProgram.link();
-    cerr << "[DEBUG] Skybox shader compiled successfully." << endl;
-
-    prog.compileShader("shader/basic_uniform.vert");
-    prog.compileShader("shader/basic_uniform.frag");
-    prog.link();
-    cerr << "[DEBUG] Model shader compiled successfully." << endl;
+	cerr << "[DEBUG] Loading space ship texture..." << endl;
+	spaceShipTex = Texture::loadTexture("media/textures/spaceship textures/blinn3SG_albedo.jpg");
+	if (spaceShipTex == GLuint(0)) {
+		cerr << "[ERROR] Space ship texture failed to load!" << endl;
+		exit(EXIT_FAILURE);
+	}
+	cerr << "[DEBUG] Scene initialized successfully." << endl;
+	cerr << "[DEBUG] SceneBasic_Uniform initialized successfully." << endl;
 }
 
 void SceneBasic_Uniform::update(float t) {
@@ -86,10 +84,6 @@ void SceneBasic_Uniform::render() {
     float modelRadius = glm::length(aabbMax - aabbMin) * 0.5f;
     float cameraDistance = modelRadius * 2.0f;
 
-    cerr << "[DEBUG] Model Center: (" << modelCenter.x << ", " << modelCenter.y << ", " << modelCenter.z << ")" << endl;
-    cerr << "[DEBUG] Model Radius: " << modelRadius << endl;
-    cerr << "[DEBUG] Camera Distance: " << cameraDistance << endl;
-
     float camX = modelCenter.x + cameraDistance * cos(glm::radians(angle));
     float camZ = modelCenter.z + cameraDistance * sin(glm::radians(angle));
 
@@ -115,9 +109,6 @@ void SceneBasic_Uniform::setMatrices() {
     prog.setUniform("model", model);
     prog.setUniform("view", view);
     prog.setUniform("projection", projection);
-    cerr << "[DEBUG] Model matrix: " << glm::to_string(model) << endl;
-    cerr << "[DEBUG] View matrix: " << glm::to_string(view) << endl;
-    cerr << "[DEBUG] Projection matrix: " << glm::to_string(projection) << endl;
 }
 
 void SceneBasic_Uniform::renderSkybox() {
@@ -139,15 +130,25 @@ void SceneBasic_Uniform::renderModel() {
 
     prog.use();
 
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, spaceShipTex);
+    prog.setUniform("spaceshipTexture", 0);
+
+    // Set the uniform variables for lighting
+    prog.setUniform("ambientColor", vec3(0.1f, 0.1f, 0.1f));
+    prog.setUniform("diffuseColor", vec3(0.8f, 0.8f, 0.8f));
+    prog.setUniform("specularColor", vec3(1.0f, 1.0f, 1.0f));
+    prog.setUniform("shininess", 32.0f);
+
     model = glm::mat4(1.0f);
-    model = glm::scale(model, vec3(1.0f)); 
+    model = glm::scale(model, vec3(1.0f));
     model = glm::translate(model, vec3(0.0f, 2000.0f, 0.0f));
     model = glm::rotate(model, glm::radians(180.0f), vec3(0.0f, 1.0f, 0.0f));
-
-    cerr << "[DEBUG] Model Matrix: " << glm::to_string(model) << endl;
 
     setMatrices();
     mesh->render();
 
     cerr << "[DEBUG] Model rendered." << endl;
 }
+
+

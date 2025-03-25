@@ -1,9 +1,8 @@
 #version 460
 
-in vec3 Color;
 in vec3 Normal;
 in vec3 FragPos;
-in vec3 TexCoords;
+in vec2 TexCoords;
 
 out vec4 FragColor;
 
@@ -13,7 +12,7 @@ uniform vec3 ambientColor;
 uniform vec3 diffuseColor;
 uniform vec3 specularColor;
 uniform float shininess;
-uniform samplerCube skybox;
+uniform sampler2D spaceshipTexture;
 
 vec3 calculateBlinnPhong(vec3 normal, vec3 fragPos, vec3 viewPos, vec3 lightPos, vec3 ambientColor, vec3 diffuseColor, vec3 specularColor, float shininess, vec3 color)
 {
@@ -37,14 +36,11 @@ vec3 calculateBlinnPhong(vec3 normal, vec3 fragPos, vec3 viewPos, vec3 lightPos,
 
 void main()
 {
-    // Blinn-Phong result
-    vec3 blinnPhongResult = calculateBlinnPhong(Normal, FragPos, viewPos, lightPos, ambientColor, diffuseColor, specularColor, shininess, Color);
+    // Sample the spaceship texture
+    vec3 texColor = texture(spaceshipTexture, TexCoords).rgb;
 
-    // Skybox color
-    vec3 skyboxColor = texture(skybox, TexCoords).rgb;
+    // Blinn-Phong result using the texture color
+    vec3 blinnPhongResult = calculateBlinnPhong(Normal, FragPos, viewPos, lightPos, ambientColor, diffuseColor, specularColor, shininess, texColor);
 
-    // Blend Blinn-Phong result with skybox color
-    vec3 result = mix(skyboxColor, blinnPhongResult, 0.5);
-
-    FragColor = vec4(result, 1.0);
+    FragColor = vec4(blinnPhongResult, 1.0);
 }
