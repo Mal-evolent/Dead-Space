@@ -11,7 +11,7 @@ using glm::vec3;
 using glm::mat4;
 using glm::mat3;
 
-SceneBasic_Uniform::SceneBasic_Uniform() : angle(0.0f), sky(100.0f) {
+SceneBasic_Uniform::SceneBasic_Uniform() : angle(0.0f), sky(100.0f), rotationSpeed(1.0f), prevTime(0.0f) {
     cerr << "[DEBUG] Initializing SceneBasic_Uniform..." << endl;
     mesh = ObjMesh::load("media/models/spaceship.obj", true);
     if (!mesh) {
@@ -48,9 +48,12 @@ void SceneBasic_Uniform::initScene() {
 }
 
 void SceneBasic_Uniform::update(float t) {
+    float deltaTime = t - prevTime;
+    prevTime = t;
 
+    angle += rotationSpeed * deltaTime;
+    if (angle > 360.0f) angle -= 360.0f;
 }
-
 
 void SceneBasic_Uniform::compile() {
     try {
@@ -87,8 +90,11 @@ void SceneBasic_Uniform::render() {
     cerr << "[DEBUG] Model Radius: " << modelRadius << endl;
     cerr << "[DEBUG] Camera Distance: " << cameraDistance << endl;
 
+    float camX = modelCenter.x + cameraDistance * cos(glm::radians(angle));
+    float camZ = modelCenter.z + cameraDistance * sin(glm::radians(angle));
+
     view = glm::lookAt(
-        modelCenter + vec3(0.0f, 0.0f, cameraDistance),
+        vec3(camX, modelCenter.y, camZ),
         modelCenter,
         vec3(0.0f, 1.0f, 0.0f)
     );
@@ -113,7 +119,6 @@ void SceneBasic_Uniform::setMatrices() {
     cerr << "[DEBUG] View matrix: " << glm::to_string(view) << endl;
     cerr << "[DEBUG] Projection matrix: " << glm::to_string(projection) << endl;
 }
-
 
 void SceneBasic_Uniform::renderSkybox() {
     cerr << "[DEBUG] Rendering skybox..." << endl;
@@ -146,4 +151,3 @@ void SceneBasic_Uniform::renderModel() {
 
     cerr << "[DEBUG] Model rendered." << endl;
 }
-

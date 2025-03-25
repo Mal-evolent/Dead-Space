@@ -20,6 +20,8 @@ private:
     std::unique_ptr<ObjMesh> mesh;
     glm::mat4 model, view, projection;
     float angle;
+    float rotationSpeed;
+    float prevTime;
 
     void compile();
     void setMatrices();
