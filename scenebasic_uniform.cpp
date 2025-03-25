@@ -11,9 +11,9 @@ using glm::vec3;
 using glm::mat4;
 using glm::mat3;
 
-SceneBasic_Uniform::SceneBasic_Uniform() : angle(0.0f), sky(100.0f), rotationSpeed(10.0f), prevTime(0.0f) {
+SceneBasic_Uniform::SceneBasic_Uniform() : angle(0.0f), sky(100.0f), rotationSpeed(10.0f), prevTime(0.0f), zoomFactor(75.0f) {
     cerr << "[DEBUG] Initializing SceneBasic_Uniform..." << endl;
-    mesh = ObjMesh::load("media/models/spaceship.obj", true);
+    mesh = ObjMesh::load("media/models/7345nq347b.obj", true);
     if (!mesh) {
         cerr << "[ERROR] Failed to load model!" << endl;
         exit(EXIT_FAILURE);
@@ -33,16 +33,21 @@ void SceneBasic_Uniform::initScene() {
     if (skyboxTex == GLuint(0)) {
         cerr << "[ERROR] Skybox texture failed to load!" << endl;
         exit(EXIT_FAILURE);
+    } else {
+        cerr << "[DEBUG] Skybox texture loaded successfully." << endl;
     }
 
-	cerr << "[DEBUG] Loading space ship texture..." << endl;
-	spaceShipTex = Texture::loadTexture("media/textures/spaceship textures/blinn3SG_albedo.jpg");
-	if (spaceShipTex == GLuint(0)) {
-		cerr << "[ERROR] Space ship texture failed to load!" << endl;
-		exit(EXIT_FAILURE);
-	}
-	cerr << "[DEBUG] Scene initialized successfully." << endl;
-	cerr << "[DEBUG] SceneBasic_Uniform initialized successfully." << endl;
+    cerr << "[DEBUG] Loading space ship texture..." << endl;
+    spaceShipTex = Texture::loadTexture("media/textures/spaceship textures/7345nq347b_albedo.png");
+    if (spaceShipTex == GLuint(0)) {
+        cerr << "[ERROR] Space ship texture failed to load!" << endl;
+        exit(EXIT_FAILURE);
+    } else {
+        cerr << "[DEBUG] Space ship texture loaded successfully." << endl;
+    }
+
+    cerr << "[DEBUG] Scene initialized successfully." << endl;
+    cerr << "[DEBUG] SceneBasic_Uniform initialized successfully." << endl;
 }
 
 void SceneBasic_Uniform::update(float t) {
@@ -76,13 +81,14 @@ void SceneBasic_Uniform::render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     cerr << "[DEBUG] Rendering frame..." << endl;
 
-    // Auto-center camera based on bounding box
     Aabb modelBBox = mesh->getBoundingBox();
     vec3 aabbMin = modelBBox.min;
     vec3 aabbMax = modelBBox.max;
     vec3 modelCenter = (aabbMin + aabbMax) * 0.5f;
+    modelCenter.y += 2000.0f;
+
     float modelRadius = glm::length(aabbMax - aabbMin) * 0.5f;
-    float cameraDistance = modelRadius * 2.0f;
+    float cameraDistance = modelRadius * 2.0f * zoomFactor;
 
     float camX = modelCenter.x + cameraDistance * cos(glm::radians(angle));
     float camZ = modelCenter.z + cameraDistance * sin(glm::radians(angle));
@@ -145,8 +151,8 @@ void SceneBasic_Uniform::renderModel() {
     prog.setUniform("lightPos", lightPosition);
 
     model = glm::mat4(1.0f);
-    model = glm::scale(model, vec3(1.0f));
-    model = glm::translate(model, vec3(0.0f, 2000.0f, 0.0f));
+    model = glm::scale(model, vec3(100.0f));
+    model = glm::translate(model, vec3(0.0f, 20.0f, 0.0f));
     model = glm::rotate(model, glm::radians(180.0f), vec3(0.0f, 1.0f, 0.0f));
 
     setMatrices();
@@ -154,5 +160,3 @@ void SceneBasic_Uniform::renderModel() {
 
     cerr << "[DEBUG] Model rendered." << endl;
 }
-
-

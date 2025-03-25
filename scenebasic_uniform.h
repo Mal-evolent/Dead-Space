@@ -25,6 +25,7 @@ private:
     float angle;
     float rotationSpeed;
     float prevTime;
+	float zoomFactor;
 
     void compile();
     void setMatrices();
