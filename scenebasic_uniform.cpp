@@ -11,7 +11,7 @@ using glm::vec3;
 using glm::mat4;
 using glm::mat3;
 
-SceneBasic_Uniform::SceneBasic_Uniform() : angle(0.0f), sky(100.0f), rotationSpeed(1.0f), prevTime(0.0f) {
+SceneBasic_Uniform::SceneBasic_Uniform() : angle(0.0f), sky(100.0f), rotationSpeed(10.0f), prevTime(0.0f) {
     cerr << "[DEBUG] Initializing SceneBasic_Uniform..." << endl;
     mesh = ObjMesh::load("media/models/spaceship.obj", true);
     if (!mesh) {
@@ -135,10 +135,14 @@ void SceneBasic_Uniform::renderModel() {
     prog.setUniform("spaceshipTexture", 0);
 
     // Set the uniform variables for lighting
-    prog.setUniform("ambientColor", vec3(0.1f, 0.1f, 0.1f));
-    prog.setUniform("diffuseColor", vec3(0.8f, 0.8f, 0.8f));
-    prog.setUniform("specularColor", vec3(1.0f, 1.0f, 1.0f));
+    prog.setUniform("ambientColor", vec3(0.05f, 0.05f, 0.05f));
+    prog.setUniform("diffuseColor", vec3(0.15f, 0.15f, 0.15f));
+    prog.setUniform("specularColor", vec3(0.5f, 0.5f, 0.5f));
     prog.setUniform("shininess", 32.0f);
+
+    // Position the light source above the model
+    vec3 lightPosition = vec3(-5000.0f, 5000.0f, 0.0f);
+    prog.setUniform("lightPos", lightPosition);
 
     model = glm::mat4(1.0f);
     model = glm::scale(model, vec3(1.0f));
