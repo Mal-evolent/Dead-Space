@@ -8,7 +8,7 @@
 using std::cerr;
 using std::endl;
 using glm::vec3;
-using glm::mat4;
+using glm::mat4;  
 using glm::mat3;
 
 SceneBasic_Uniform::SceneBasic_Uniform() : angle(0.0f), sky(100.0f), rotationSpeed(10.0f), prevTime(0.0f), zoomFactor(75.0f) {
@@ -37,13 +37,19 @@ void SceneBasic_Uniform::initScene() {
         cerr << "[DEBUG] Skybox texture loaded successfully." << endl;
     }
 
-    cerr << "[DEBUG] Loading space ship texture..." << endl;
-    spaceShipTex = Texture::loadTexture("media/textures/spaceship textures/7345nq347b_albedo.png");
-    if (spaceShipTex == GLuint(0)) {
-        cerr << "[ERROR] Space ship texture failed to load!" << endl;
+    cerr << "[DEBUG] Loading PBR textures..." << endl;
+    albedoMap = Texture::loadTexture("media/textures/spaceship textures/7345nq347b_albedo.png");
+    normalMap = Texture::loadTexture("media/textures/spaceship textures/7345nq347b_normal.png");
+    metallicMap = Texture::loadTexture("media/textures/spaceship textures/7345nq347b_metalness.png");
+    roughnessMap = Texture::loadTexture("media/textures/spaceship textures/7345nq347b_roughness.png");
+    aoMap = Texture::loadTexture("media/textures/spaceship textures/7345nq347b_ao.png");
+
+    if (albedoMap == GLuint(0) || normalMap == GLuint(0) || metallicMap == GLuint(0) || 
+        roughnessMap == GLuint(0) || aoMap == GLuint(0)) {
+        cerr << "[ERROR] One or more PBR textures failed to load!" << endl;
         exit(EXIT_FAILURE);
     } else {
-        cerr << "[DEBUG] Space ship texture loaded successfully." << endl;
+        cerr << "[DEBUG] All PBR textures loaded successfully." << endl;
     }
 
     cerr << "[DEBUG] Scene initialized successfully." << endl;
@@ -64,11 +70,13 @@ void SceneBasic_Uniform::compile() {
         prog.compileShader("shader/basic_uniform.vert");
         prog.compileShader("shader/basic_uniform.frag");
         prog.link();
+        prog.findUniformLocations();
         cerr << "[DEBUG] Model shader compiled successfully." << endl;
 
         skyboxProgram.compileShader("shader/skybox.vert");
         skyboxProgram.compileShader("shader/skybox.frag");
         skyboxProgram.link();
+        skyboxProgram.findUniformLocations();
         cerr << "[DEBUG] Skybox shader compiled successfully." << endl;
     }
     catch (GLSLProgramException& e) {
@@ -136,19 +144,39 @@ void SceneBasic_Uniform::renderModel() {
 
     prog.use();
 
+    // Bind all PBR textures
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, spaceShipTex);
-    prog.setUniform("spaceshipTexture", 0);
+    glBindTexture(GL_TEXTURE_2D, albedoMap);
+    prog.setUniform("albedoMap", 0);
 
-    // Set the uniform variables for lighting
-    prog.setUniform("ambientColor", vec3(0.05f, 0.05f, 0.05f));
-    prog.setUniform("diffuseColor", vec3(0.15f, 0.15f, 0.15f));
-    prog.setUniform("specularColor", vec3(0.5f, 0.5f, 0.5f));
-    prog.setUniform("shininess", 32.0f);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, normalMap);
+    prog.setUniform("normalMap", 1);
 
-    // Position the light source above the model
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, metallicMap);
+    prog.setUniform("metallicMap", 2);
+
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, roughnessMap);
+    prog.setUniform("roughnessMap", 3);
+
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, aoMap);
+    prog.setUniform("aoMap", 4);
+
+    // Bind skybox texture for environment reflections
+    glActiveTexture(GL_TEXTURE5);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTex);
+    prog.setUniform("environmentMap", 5);
+
+    // Set light position
     vec3 lightPosition = vec3(-5000.0f, 5000.0f, 0.0f);
     prog.setUniform("lightPos", lightPosition);
+
+    // Set view position for PBR calculations
+    vec3 viewPosition = vec3(0.0f, 0.0f, 0.0f);
+    prog.setUniform("viewPos", viewPosition);
 
     model = glm::mat4(1.0f);
     model = glm::scale(model, vec3(100.0f));

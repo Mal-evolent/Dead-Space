@@ -16,10 +16,15 @@ class SceneBasic_Uniform : public Scene
 private:
     GLSLProgram prog, skyboxProgram;
     GLuint skyboxTex;
+
+    // PBR texture handles
+    GLuint albedoMap;
+    GLuint normalMap;
+    GLuint metallicMap;
+    GLuint roughnessMap;
+    GLuint aoMap;
+
     SkyBox sky;
-
-    GLuint spaceShipTex;
-
     std::unique_ptr<ObjMesh> mesh;
     glm::mat4 model, view, projection;
     float angle;
