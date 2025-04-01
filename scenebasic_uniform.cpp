@@ -140,6 +140,7 @@ void SceneBasic_Uniform::render() {
     hdrProgram.use();
     hdrProgram.setUniform("hdrBuffer", 0);
     hdrProgram.setUniform("exposure", exposure);
+    hdrProgram.setUniform("time", prevTime); 
     
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, hdrColorBuffer);
