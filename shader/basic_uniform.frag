@@ -16,6 +16,7 @@ uniform sampler2D metallicMap; // Metallic properties texture
 uniform sampler2D roughnessMap; // Surface roughness texture
 uniform sampler2D aoMap;      // Ambient occlusion texture
 uniform samplerCube environmentMap; // Skybox texture for environment reflections
+uniform float chromaticAberrationStrength = 0.05; // Strength of the chromatic aberration effect
 
 const float PI = 3.14159265359;
 
@@ -80,9 +81,20 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
 
 void main()
 {
-    // Sample PBR textures
-    vec3 albedo = pow(texture(albedoMap, TexCoords).rgb, vec3(2.2));
+    // Apply chromatic aberration by offsetting color channels
+    vec2 texOffset = (TexCoords - 0.5) * 2.0; // Convert UVs to -1 to 1 range
+    vec2 redOffset = TexCoords + texOffset * chromaticAberrationStrength;
+    vec2 blueOffset = TexCoords - texOffset * chromaticAberrationStrength;
+    
+    // Sample colors with offset
+    vec3 albedoR = pow(texture(albedoMap, redOffset).rgb, vec3(2.2));
+    vec3 albedoG = pow(texture(albedoMap, TexCoords).rgb, vec3(2.2));
+    vec3 albedoB = pow(texture(albedoMap, blueOffset).rgb, vec3(2.2));
+    
+    // Combine channels
+    vec3 albedo = vec3(albedoR.r, albedoG.g, albedoB.b);
     albedo *= 0.3;
+
     float metallic = texture(metallicMap, TexCoords).r;
     float roughness = texture(roughnessMap, TexCoords).r;
     float ao = texture(aoMap, TexCoords).r;
