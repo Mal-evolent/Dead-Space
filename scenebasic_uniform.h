@@ -3,6 +3,7 @@
 
 #include "helper/scene.h"
 #include <glad/glad.h>
+#include <GLFW/glfw3.h>
 #include "helper/glslprogram.h"
 #include "skybox.h"
 #include "objmesh.h"
@@ -36,11 +37,19 @@ private:
     float prevTime;        // Previous frame time
     float zoomFactor;      // Camera distance multiplier
 
+    // HDR framebuffer objects
+    GLuint hdrFBO;
+    GLuint hdrColorBuffer;
+    GLuint rboDepth;
+    GLSLProgram hdrProgram;
+    float exposure = 0.15f;
+
     // Internal render functions
     void compile();
     void setMatrices();
     void renderSkybox();
     void renderModel();
+    void renderQuad();
 
 public:
     SceneBasic_Uniform();

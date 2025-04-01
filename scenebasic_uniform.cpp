@@ -25,6 +25,30 @@ void SceneBasic_Uniform::initScene() {
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
 
+    // Set up HDR framebuffer
+    glGenFramebuffers(1, &hdrFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
+    
+    // Create floating point color buffer
+    glGenTextures(1, &hdrColorBuffer);
+    glBindTexture(GL_TEXTURE_2D, hdrColorBuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, hdrColorBuffer, 0);
+
+    // Create depth buffer (renderbuffer)
+    glGenRenderbuffers(1, &rboDepth);
+    glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        std::cerr << "Framebuffer not complete!" << std::endl;
+        exit(1);
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
     // Load skybox cubemap
     skyboxTex = Texture::loadCubeMap("media/textures/skybox/nebula");
     if (skyboxTex == GLuint(0)) {
@@ -68,6 +92,12 @@ void SceneBasic_Uniform::compile() {
         skyboxProgram.compileShader("shader/skybox.frag");
         skyboxProgram.link();
         skyboxProgram.findUniformLocations();
+
+        // Compile and link HDR shader
+        hdrProgram.compileShader("shader/hdr.vert");
+        hdrProgram.compileShader("shader/hdr.frag");
+        hdrProgram.link();
+        hdrProgram.findUniformLocations();
     }
     catch (GLSLProgramException& e) {
         cerr << "[ERROR] Shader compilation error: " << e.what() << endl;
@@ -76,6 +106,8 @@ void SceneBasic_Uniform::compile() {
 }
 
 void SceneBasic_Uniform::render() {
+    // First pass: render scene to HDR framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Calculate camera position based on model bounds
@@ -100,12 +132,34 @@ void SceneBasic_Uniform::render() {
 
     renderSkybox();
     renderModel();
+
+    // Second pass: tone mapping and gamma correction
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+    hdrProgram.use();
+    hdrProgram.setUniform("hdrBuffer", 0);
+    hdrProgram.setUniform("exposure", exposure);
+    
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, hdrColorBuffer);
+    
+    // Render quad
+    glDisable(GL_DEPTH_TEST);
+    renderQuad();
+    glEnable(GL_DEPTH_TEST);
 }
 
 void SceneBasic_Uniform::resize(int w, int h) {
     width = w;
     height = h;
     glViewport(0, 0, w, h);
+
+    // Resize HDR framebuffer
+    glBindTexture(GL_TEXTURE_2D, hdrColorBuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, NULL);
+    glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, w, h);
 }
 
 void SceneBasic_Uniform::setMatrices() {
@@ -179,4 +233,31 @@ void SceneBasic_Uniform::renderModel() {
 
     setMatrices();
     mesh->render();
+}
+
+void SceneBasic_Uniform::renderQuad() {
+    static GLuint quadVAO = 0;
+    static GLuint quadVBO;
+    if (quadVAO == 0) {
+        float quadVertices[] = {
+            // positions        // texture Coords
+            -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+            -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+             1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+             1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+        };
+        // setup plane VAO
+        glGenVertexArrays(1, &quadVAO);
+        glGenBuffers(1, &quadVBO);
+        glBindVertexArray(quadVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    }
+    glBindVertexArray(quadVAO);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindVertexArray(0);
 }
