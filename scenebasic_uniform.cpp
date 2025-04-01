@@ -12,32 +12,27 @@ using glm::mat4;
 using glm::mat3;
 
 SceneBasic_Uniform::SceneBasic_Uniform() : angle(0.0f), sky(100.0f), rotationSpeed(10.0f), prevTime(0.0f), zoomFactor(75.0f) {
-    cerr << "[DEBUG] Initializing SceneBasic_Uniform..." << endl;
     mesh = ObjMesh::load("media/models/7345nq347b.obj", true);
     if (!mesh) {
         cerr << "[ERROR] Failed to load model!" << endl;
         exit(EXIT_FAILURE);
     }
-    cerr << "[DEBUG] Model loaded successfully." << endl;
     model = mat4(1.0f);
 }
 
 void SceneBasic_Uniform::initScene() {
-    cerr << "[DEBUG] Initializing scene..." << endl;
     compile();
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
 
-    cerr << "[DEBUG] Loading skybox texture..." << endl;
+    // Load skybox cubemap
     skyboxTex = Texture::loadCubeMap("media/textures/skybox/nebula");
     if (skyboxTex == GLuint(0)) {
         cerr << "[ERROR] Skybox texture failed to load!" << endl;
         exit(EXIT_FAILURE);
-    } else {
-        cerr << "[DEBUG] Skybox texture loaded successfully." << endl;
     }
 
-    cerr << "[DEBUG] Loading PBR textures..." << endl;
+    // Load PBR material textures
     albedoMap = Texture::loadTexture("media/textures/spaceship textures/7345nq347b_albedo.png");
     normalMap = Texture::loadTexture("media/textures/spaceship textures/7345nq347b_normal.png");
     metallicMap = Texture::loadTexture("media/textures/spaceship textures/7345nq347b_metalness.png");
@@ -48,36 +43,31 @@ void SceneBasic_Uniform::initScene() {
         roughnessMap == GLuint(0) || aoMap == GLuint(0)) {
         cerr << "[ERROR] One or more PBR textures failed to load!" << endl;
         exit(EXIT_FAILURE);
-    } else {
-        cerr << "[DEBUG] All PBR textures loaded successfully." << endl;
     }
-
-    cerr << "[DEBUG] Scene initialized successfully." << endl;
-    cerr << "[DEBUG] SceneBasic_Uniform initialized successfully." << endl;
 }
 
 void SceneBasic_Uniform::update(float t) {
     float deltaTime = t - prevTime;
     prevTime = t;
 
+    // Update camera rotation
     angle += rotationSpeed * deltaTime;
     if (angle > 360.0f) angle -= 360.0f;
 }
 
 void SceneBasic_Uniform::compile() {
     try {
-        cerr << "[DEBUG] Compiling shaders..." << endl;
+        // Compile and link model shader
         prog.compileShader("shader/basic_uniform.vert");
         prog.compileShader("shader/basic_uniform.frag");
         prog.link();
         prog.findUniformLocations();
-        cerr << "[DEBUG] Model shader compiled successfully." << endl;
 
+        // Compile and link skybox shader
         skyboxProgram.compileShader("shader/skybox.vert");
         skyboxProgram.compileShader("shader/skybox.frag");
         skyboxProgram.link();
         skyboxProgram.findUniformLocations();
-        cerr << "[DEBUG] Skybox shader compiled successfully." << endl;
     }
     catch (GLSLProgramException& e) {
         cerr << "[ERROR] Shader compilation error: " << e.what() << endl;
@@ -87,20 +77,19 @@ void SceneBasic_Uniform::compile() {
 
 void SceneBasic_Uniform::render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    cerr << "[DEBUG] Rendering frame..." << endl;
 
+    // Calculate camera position based on model bounds
     Aabb modelBBox = mesh->getBoundingBox();
-    vec3 aabbMin = modelBBox.min;
-    vec3 aabbMax = modelBBox.max;
-    vec3 modelCenter = (aabbMin + aabbMax) * 0.5f;
+    vec3 modelCenter = (modelBBox.min + modelBBox.max) * 0.5f;
     modelCenter.y += 2000.0f;
 
-    float modelRadius = glm::length(aabbMax - aabbMin) * 0.5f;
+    float modelRadius = glm::length(modelBBox.max - modelBBox.min) * 0.5f;
     float cameraDistance = modelRadius * 2.0f * zoomFactor;
 
     float camX = modelCenter.x + cameraDistance * cos(glm::radians(angle));
     float camZ = modelCenter.z + cameraDistance * sin(glm::radians(angle));
 
+    // Update view matrix
     view = glm::lookAt(
         vec3(camX, modelCenter.y, camZ),
         modelCenter,
@@ -126,25 +115,21 @@ void SceneBasic_Uniform::setMatrices() {
 }
 
 void SceneBasic_Uniform::renderSkybox() {
-    cerr << "[DEBUG] Rendering skybox..." << endl;
     glDepthMask(GL_FALSE);
     skyboxProgram.use();
-    mat4 skyboxView = mat4(mat3(view));
+    mat4 skyboxView = mat4(mat3(view));  // Remove translation from view matrix
     skyboxProgram.setUniform("view", skyboxView);
     skyboxProgram.setUniform("projection", projection);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTex);
     sky.render();
     glDepthMask(GL_TRUE);
-    cerr << "[DEBUG] Skybox rendered." << endl;
 }
 
 void SceneBasic_Uniform::renderModel() {
-    cerr << "[DEBUG] Rendering model..." << endl;
-
     prog.use();
 
-    // Bind all PBR textures
+    // Bind PBR textures
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, albedoMap);
     prog.setUniform("albedoMap", 0);
@@ -165,19 +150,28 @@ void SceneBasic_Uniform::renderModel() {
     glBindTexture(GL_TEXTURE_2D, aoMap);
     prog.setUniform("aoMap", 4);
 
-    // Bind skybox texture for environment reflections
     glActiveTexture(GL_TEXTURE5);
     glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTex);
     prog.setUniform("environmentMap", 5);
 
-    // Set light position
-    vec3 lightPosition = vec3(-5000.0f, 5000.0f, 0.0f);
+    // Calculate camera position based on model bounds
+    Aabb modelBBox = mesh->getBoundingBox();
+    vec3 modelCenter = (modelBBox.min + modelBBox.max) * 0.5f;
+    modelCenter.y += 2000.0f;
+
+    float modelRadius = glm::length(modelBBox.max - modelBBox.min) * 0.5f;
+    float cameraDistance = modelRadius * 2.0f * zoomFactor;
+
+    float camX = modelCenter.x + cameraDistance * cos(glm::radians(angle));
+    float camZ = modelCenter.z + cameraDistance * sin(glm::radians(angle));
+    vec3 cameraPos = vec3(camX, modelCenter.y, camZ);
+
+    // Set light position slightly above camera
+    vec3 lightPosition = cameraPos + vec3(0.0f, 500.0f, 0.0f);
     prog.setUniform("lightPos", lightPosition);
+    prog.setUniform("viewPos", cameraPos);
 
-    // Set view position for PBR calculations
-    vec3 viewPosition = vec3(0.0f, 0.0f, 0.0f);
-    prog.setUniform("viewPos", viewPosition);
-
+    // Set model transformations
     model = glm::mat4(1.0f);
     model = glm::scale(model, vec3(100.0f));
     model = glm::translate(model, vec3(0.0f, 20.0f, 0.0f));
@@ -185,6 +179,4 @@ void SceneBasic_Uniform::renderModel() {
 
     setMatrices();
     mesh->render();
-
-    cerr << "[DEBUG] Model rendered." << endl;
 }

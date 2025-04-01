@@ -1,28 +1,32 @@
 #version 460
 
-in vec3 FragPos;
-in vec2 TexCoords;
-in mat3 TBN;
+// Input from vertex shader
+in vec3 FragPos;      // World-space fragment position
+in vec2 TexCoords;    // UV texture coordinates
+in mat3 TBN;          // Tangent-Bitangent-Normal matrix for normal mapping
 
-out vec4 FragColor;
+out vec4 FragColor;   // Final output color
 
-uniform vec3 lightPos;
-uniform vec3 viewPos;
-uniform sampler2D albedoMap;
-uniform sampler2D normalMap;
-uniform sampler2D metallicMap;
-uniform sampler2D roughnessMap;
-uniform sampler2D aoMap;
-uniform samplerCube environmentMap;
+// Material and scene uniforms
+uniform vec3 lightPos;        // Light position in world space
+uniform vec3 viewPos;         // Camera position in world space
+uniform sampler2D albedoMap;  // Base color texture
+uniform sampler2D normalMap;  // Normal map for surface detail
+uniform sampler2D metallicMap; // Metallic properties texture
+uniform sampler2D roughnessMap; // Surface roughness texture
+uniform sampler2D aoMap;      // Ambient occlusion texture
+uniform samplerCube environmentMap; // Skybox texture for environment reflections
 
 const float PI = 3.14159265359;
 
+// Transform normal from tangent to world space
 vec3 getNormalFromMap()
 {
     vec3 tangentNormal = texture(normalMap, TexCoords).xyz * 2.0 - 1.0;
     return normalize(TBN * tangentNormal);
 }
 
+// GGX/Trowbridge-Reitz NDF
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
     float a = roughness * roughness;
@@ -37,6 +41,7 @@ float DistributionGGX(vec3 N, vec3 H, float roughness)
     return nom / denom;
 }
 
+// Schlick-GGX geometry shadowing function
 float GeometrySchlickGGX(float NdotV, float roughness)
 {
     float r = (roughness + 1.0);
@@ -48,6 +53,7 @@ float GeometrySchlickGGX(float NdotV, float roughness)
     return nom / denom;
 }
 
+// Smith's method combining shadowing and masking
 float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 {
     float NdotV = max(dot(N, V), 0.0);
@@ -58,61 +64,65 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
     return ggx1 * ggx2;
 }
 
+// Fresnel-Schlick for direct lighting
 vec3 fresnelSchlick(float cosTheta, vec3 F0, float roughness)
 {
-    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+    vec3 scaledF0 = F0 * 0.5;
+    return scaledF0 + (max(vec3(1.0 - roughness), scaledF0) - scaledF0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
+// Fresnel-Schlick for environment reflections
 vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
 {
-    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+    vec3 scaledF0 = F0 * 0.3;
+    return scaledF0 + (max(vec3(1.0 - roughness), scaledF0) - scaledF0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
 void main()
 {
+    // Sample PBR textures
     vec3 albedo = pow(texture(albedoMap, TexCoords).rgb, vec3(2.2));
+    albedo *= 0.3;
     float metallic = texture(metallicMap, TexCoords).r;
     float roughness = texture(roughnessMap, TexCoords).r;
     float ao = texture(aoMap, TexCoords).r;
 
     vec3 N = getNormalFromMap();
     vec3 V = normalize(viewPos - FragPos);
+    vec3 F0 = mix(vec3(0.04), albedo, metallic * 0.7);
 
-    vec3 F0 = vec3(0.04);
-    F0 = mix(F0, albedo, metallic);
-
+    // Direct lighting calculation
     vec3 L = normalize(lightPos - FragPos);
     vec3 H = normalize(V + L);
-
     float NDF = DistributionGGX(N, H, roughness);
     float G = GeometrySmith(N, V, L, roughness);
     vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0, roughness);
 
     vec3 numerator = NDF * G * F;
     float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
-    vec3 specular = numerator / denominator;
+    vec3 specular = numerator / denominator * 0.8;
 
-    vec3 kS = F;
-    vec3 kD = vec3(1.0) - kS;
-    kD *= 1.0 - metallic;
-
+    vec3 kS = F * 0.8;
+    vec3 kD = (1.0 - kS) * (1.0 - metallic * 0.7);
     float NdotL = max(dot(N, L), 0.0);
-    vec3 Lo = (kD * albedo / PI + specular) * vec3(1.0) * NdotL;
+    vec3 Lo = (kD * albedo / PI + specular) * NdotL;
 
+    // Environment reflection calculation
     vec3 R = reflect(-V, N);
     vec3 F_roughness = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
-    vec3 kS_env = F_roughness;
-    vec3 kD_env = 1.0 - kS_env;
-    kD_env *= 1.0 - metallic;
+    vec3 kS_env = F_roughness * 0.8;
+    vec3 kD_env = (1.0 - kS_env) * (1.0 - metallic * 0.7);
     
-    vec3 envReflection = texture(environmentMap, R).rgb;
+    vec3 envReflection = pow(texture(environmentMap, R).rgb, vec3(0.8));
     vec3 envBRDF = kD_env * albedo + kS_env * envReflection;
 
-    vec3 ambient = vec3(0.03) * albedo * ao;
-    vec3 color = ambient + Lo + envBRDF;
+    // Final color composition
+    vec3 ambient = vec3(0.01) * albedo * ao;
+    vec3 color = ambient + Lo + envBRDF * 0.8;
 
-    color = color / (color + vec3(1.0));
-    color = pow(color, vec3(1.0/2.2));
+    // Tone mapping and gamma correction
+    color = color / (color + vec3(0.8));
+    color = pow(color, vec3(1.0/2.0));
 
     FragColor = vec4(color, 1.0);
 }
