@@ -8,6 +8,7 @@
 #include "skybox.h"
 #include "objmesh.h"
 #include "texture.h"
+#include "ShipController.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -32,11 +33,8 @@ private:
     glm::mat4 model, view, projection;
     
     // Camera control
-    float angle;           // Current rotation angle
-    float rotationSpeed;   // Speed of camera rotation
     float prevTime;        // Previous frame time
     float zoomFactor;      // Camera distance multiplier
-    float fixedCameraAngle; // Fixed camera angle (in degrees)
 
     //Light control
     float lightOrbitAngle;     // Angle for orbital motion around the ship
@@ -70,6 +68,7 @@ private:
 
 public:
     SceneBasic_Uniform();
+    ShipController shipController;
     void initScene();
     void update(float t);
     void render();

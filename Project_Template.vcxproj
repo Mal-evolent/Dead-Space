@@ -161,6 +161,7 @@
     <ClCompile Include="objmesh.cpp" />
     <ClCompile Include="plane.cpp" />
     <ClCompile Include="scenebasic_uniform.cpp" />
+    <ClCompile Include="ShipController.cpp" />
     <ClCompile Include="skybox.cpp" />
     <ClCompile Include="stb_image.cpp" />
     <ClCompile Include="texture.cpp" />
@@ -185,6 +186,7 @@
     <ClInclude Include="objmesh.h" />
     <ClInclude Include="plane.h" />
     <ClInclude Include="scenebasic_uniform.h" />
+    <ClInclude Include="ShipController.h" />
     <ClInclude Include="skybox.h" />
     <ClInclude Include="texture.h" />
     <ClInclude Include="torus.h" />

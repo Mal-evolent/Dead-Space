@@ -4,6 +4,8 @@
 #include <iostream>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/string_cast.hpp>
+#include "ShipController.h"
+
 
 using std::cerr;
 using std::endl;
@@ -12,12 +14,9 @@ using glm::mat4;
 using glm::mat3;
 
 SceneBasic_Uniform::SceneBasic_Uniform() :
-    angle(0.0f),
     sky(100.0f),
-    rotationSpeed(10.0f),
     prevTime(0.0f),
     zoomFactor(90.0f),
-    fixedCameraAngle(270.0f),
     currentCameraPos(0.0f),
     currentModelCenter(0.0f),
     currentModelRadius(0.0f),
@@ -28,8 +27,8 @@ SceneBasic_Uniform::SceneBasic_Uniform() :
     lightRadiusOffset(0.5f),
     lightRadiusSpeed(0.2f),      // Speed of radius changes
     lightRadius(800.0f),       // Size of the light source
-    lightIntensity(1.5f) {
-
+    lightIntensity(1.5f)
+{
     mesh = ObjMesh::load("media/models/7345nq347b.obj", true);
     if (!mesh) {
         cerr << "[ERROR] Failed to load model!" << endl;
@@ -93,6 +92,12 @@ void SceneBasic_Uniform::update(float t) {
     float deltaTime = t - prevTime;
     prevTime = t;
 
+    // Handle ship movement
+    shipController.handleInput(glfwGetCurrentContext(), deltaTime);
+
+    // Note: We no longer set the model matrix here,
+    // as it will be set properly in renderModel()
+
     // Update light orbit angle
     lightOrbitAngle += lightOrbitSpeed * deltaTime;
     if (lightOrbitAngle > 360.0f) lightOrbitAngle -= 360.0f;
@@ -103,6 +108,7 @@ void SceneBasic_Uniform::update(float t) {
     // Create smooth radius variation for light using cosine wave
     lightRadiusOffset = cos(t * lightRadiusSpeed) * currentModelRadius * 2.0f;
 }
+
 
 void SceneBasic_Uniform::compile() {
     try {
@@ -135,9 +141,13 @@ void SceneBasic_Uniform::render() {
     glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    // Get ship position and direction for camera positioning
+    glm::vec3 shipPosition = shipController.getPosition();
+    glm::vec3 shipDirection = shipController.getDirection();
+
     // Calculate camera position based on model bounds
     Aabb modelBBox = mesh->getBoundingBox();
-    vec3 modelCenter = (modelBBox.min + modelBBox.max) * 0.5f;
+    vec3 modelCenter = shipPosition + ((modelBBox.min + modelBBox.max) * 0.5f);
     modelCenter.y += 2000.0f;
     currentModelCenter = modelCenter;
 
@@ -145,21 +155,30 @@ void SceneBasic_Uniform::render() {
     currentModelRadius = modelRadius;
     float cameraDistance = modelRadius * 2.0f * zoomFactor;
 
-    // Fixed camera position from behind the ship (270 degrees is behind)
-    float camX = modelCenter.x + cameraDistance * 0.7f * cos(glm::radians(fixedCameraAngle));
-    float camZ = modelCenter.z + cameraDistance * 0.7f * sin(glm::radians(fixedCameraAngle));
+    // Calculate camera position - we want it behind the ship
+    // For this we need the opposite of the ship's direction
+    glm::vec3 backwardDir = -shipDirection;
 
-    // Position camera higher above to achieve top-down angled view
+    // Position camera behind the ship at the given distance
+    glm::vec3 cameraOffset = backwardDir * cameraDistance * 0.7f;
+
+    // Apply the offset with proper height
+    float camX = modelCenter.x + cameraOffset.x;
+    float camZ = modelCenter.z + cameraOffset.z;
     float camY = modelCenter.y + modelRadius * 50.0f; // Fixed height position
+
     vec3 cameraPos = vec3(camX, camY, camZ);
     currentCameraPos = cameraPos;
 
-    // Create a look-at point slightly in front of the ship for better forward visibility
+    // Create a look-at point in front of the ship for better forward visibility
     float lookAheadDistance = modelRadius * 1.5f;
+
+    // Calculate look-at point directly using the ship's center and direction
+    // MODIFIED: Using negative direction to look at the back of the ship instead of the front
     vec3 lookAtPoint = modelCenter + vec3(
-        lookAheadDistance * cos(glm::radians(fixedCameraAngle - 180.0f)), // opposite direction of camera
+        -lookAheadDistance * shipDirection.x,
         -modelRadius * 0.8f, // Look slightly downward
-        lookAheadDistance * sin(glm::radians(fixedCameraAngle - 180.0f)) // opposite direction of camera
+        -lookAheadDistance * shipDirection.z
     );
 
     // Update view matrix with the new look-at point
@@ -191,6 +210,8 @@ void SceneBasic_Uniform::render() {
     renderQuad();
     glEnable(GL_DEPTH_TEST);
 }
+
+
 
 void SceneBasic_Uniform::resize(int w, int h) {
     width = w;
@@ -268,15 +289,35 @@ void SceneBasic_Uniform::renderModel() {
     prog.setUniform("viewPos", currentCameraPos);
     prog.setUniform("lightIntensity", lightIntensity);
 
+    // Get ship position and direction
+    glm::vec3 shipPosition = shipController.getPosition();
+    glm::vec3 shipDirection = shipController.getDirection();
+
     // Set model transformations
     model = glm::mat4(1.0f);
+    model = glm::translate(model, shipPosition); // Apply ship position
+
+    // Calculate rotation based on ship direction
+    // The default direction is (0,0,-1), so we need to calculate the rotation needed
+    // to turn from the default to the current direction
+
+    // First, calculate the angle between the default direction and current direction in the XZ plane
+    float defaultAngle = atan2(0.0f, -1.0f); // Default direction is (0,0,-1)
+    float currentAngle = atan2(shipDirection.x, shipDirection.z);
+    float rotationAngle = currentAngle - defaultAngle;
+
+    // Apply the rotation around Y axis
+    model = glm::rotate(model, rotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
+
+    // Continue with the rest of the transformations
     model = glm::scale(model, vec3(100.0f));
     model = glm::translate(model, vec3(0.0f, 20.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(180.0f), vec3(0.0f, 1.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(0.0f), vec3(0.0f, 1.0f, 0.0f));
 
     setMatrices();
     mesh->render();
 }
+
 
 void SceneBasic_Uniform::renderQuad() {
     static GLuint quadVAO = 0;
