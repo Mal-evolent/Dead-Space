@@ -8,10 +8,20 @@
 using std::cerr;
 using std::endl;
 using glm::vec3;
-using glm::mat4;  
+using glm::mat4;
 using glm::mat3;
 
-SceneBasic_Uniform::SceneBasic_Uniform() : angle(0.0f), sky(100.0f), rotationSpeed(10.0f), prevTime(0.0f), zoomFactor(75.0f) {
+SceneBasic_Uniform::SceneBasic_Uniform() :
+    angle(0.0f),
+    sky(100.0f),
+    rotationSpeed(10.0f),
+    prevTime(0.0f),
+    zoomFactor(90.0f),
+    fixedCameraAngle(270.0f),
+    currentCameraPos(0.0f),
+    currentModelCenter(0.0f),
+    currentModelRadius(0.0f) { 
+
     mesh = ObjMesh::load("media/models/7345nq347b.obj", true);
     if (!mesh) {
         cerr << "[ERROR] Failed to load model!" << endl;
@@ -28,7 +38,7 @@ void SceneBasic_Uniform::initScene() {
     // Set up HDR framebuffer
     glGenFramebuffers(1, &hdrFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
-    
+
     // Create floating point color buffer
     glGenTextures(1, &hdrColorBuffer);
     glBindTexture(GL_TEXTURE_2D, hdrColorBuffer);
@@ -63,7 +73,7 @@ void SceneBasic_Uniform::initScene() {
     roughnessMap = Texture::loadTexture("media/textures/spaceship textures/7345nq347b_roughness.png");
     aoMap = Texture::loadTexture("media/textures/spaceship textures/7345nq347b_ao.png");
 
-    if (albedoMap == GLuint(0) || normalMap == GLuint(0) || metallicMap == GLuint(0) || 
+    if (albedoMap == GLuint(0) || normalMap == GLuint(0) || metallicMap == GLuint(0) ||
         roughnessMap == GLuint(0) || aoMap == GLuint(0)) {
         cerr << "[ERROR] One or more PBR textures failed to load!" << endl;
         exit(EXIT_FAILURE);
@@ -74,7 +84,7 @@ void SceneBasic_Uniform::update(float t) {
     float deltaTime = t - prevTime;
     prevTime = t;
 
-    // Update camera rotation
+    // Update light rotation angle, not camera angle
     angle += rotationSpeed * deltaTime;
     if (angle > 360.0f) angle -= 360.0f;
 }
@@ -114,17 +124,33 @@ void SceneBasic_Uniform::render() {
     Aabb modelBBox = mesh->getBoundingBox();
     vec3 modelCenter = (modelBBox.min + modelBBox.max) * 0.5f;
     modelCenter.y += 2000.0f;
+    currentModelCenter = modelCenter;
 
     float modelRadius = glm::length(modelBBox.max - modelBBox.min) * 0.5f;
+    currentModelRadius = modelRadius;
     float cameraDistance = modelRadius * 2.0f * zoomFactor;
 
-    float camX = modelCenter.x + cameraDistance * cos(glm::radians(angle));
-    float camZ = modelCenter.z + cameraDistance * sin(glm::radians(angle));
+    // Fixed camera position from behind the ship (270 degrees is behind)
+    float camX = modelCenter.x + cameraDistance * 0.7f * cos(glm::radians(fixedCameraAngle));
+    float camZ = modelCenter.z + cameraDistance * 0.7f * sin(glm::radians(fixedCameraAngle));
 
-    // Update view matrix
+    // Position camera higher above to achieve top-down angled view
+    float camY = modelCenter.y + modelRadius * 50.0f; // Increased height multiplier to 50.0f
+    vec3 cameraPos = vec3(camX, camY, camZ);
+    currentCameraPos = cameraPos;
+
+    // Create a look-at point slightly in front of the ship for better forward visibility
+    float lookAheadDistance = modelRadius * 1.5f;
+    vec3 lookAtPoint = modelCenter + vec3(
+        lookAheadDistance * cos(glm::radians(fixedCameraAngle - 180.0f)), // opposite direction of camera
+        -modelRadius * 0.8f, // Look slightly downward
+        lookAheadDistance * sin(glm::radians(fixedCameraAngle - 180.0f)) // opposite direction of camera
+    );
+
+    // Update view matrix with the new look-at point
     view = glm::lookAt(
-        vec3(camX, modelCenter.y, camZ),
-        modelCenter,
+        cameraPos,
+        lookAtPoint,
         vec3(0.0f, 1.0f, 0.0f)
     );
 
@@ -136,15 +162,15 @@ void SceneBasic_Uniform::render() {
     // Second pass: tone mapping and gamma correction
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
+
     hdrProgram.use();
     hdrProgram.setUniform("hdrBuffer", 0);
     hdrProgram.setUniform("exposure", exposure);
-    hdrProgram.setUniform("time", prevTime); 
-    
+    hdrProgram.setUniform("time", prevTime);
+
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, hdrColorBuffer);
-    
+
     // Render quad
     glDisable(GL_DEPTH_TEST);
     renderQuad();
@@ -172,7 +198,7 @@ void SceneBasic_Uniform::setMatrices() {
 void SceneBasic_Uniform::renderSkybox() {
     glDepthMask(GL_FALSE);
     skyboxProgram.use();
-    mat4 skyboxView = mat4(mat3(view));  // Remove translation from view matrix
+    mat4 skyboxView = mat4(mat3(view));
     skyboxProgram.setUniform("view", skyboxView);
     skyboxProgram.setUniform("projection", projection);
     glActiveTexture(GL_TEXTURE0);
@@ -209,22 +235,16 @@ void SceneBasic_Uniform::renderModel() {
     glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTex);
     prog.setUniform("environmentMap", 5);
 
-    // Calculate camera position based on model bounds
-    Aabb modelBBox = mesh->getBoundingBox();
-    vec3 modelCenter = (modelBBox.min + modelBBox.max) * 0.5f;
-    modelCenter.y += 2000.0f;
+    // Calculate rotating light position
+    float lightOrbitRadius = currentModelRadius * 4.0f;
+    float lightX = currentModelCenter.x + lightOrbitRadius * cos(glm::radians(angle));
+    float lightZ = currentModelCenter.z + lightOrbitRadius * sin(glm::radians(angle));
+    float lightY = currentModelCenter.y + currentModelRadius * 2.0f; // Keep light above the ship
+    vec3 lightPosition = vec3(lightX, lightY, lightZ);
 
-    float modelRadius = glm::length(modelBBox.max - modelBBox.min) * 0.5f;
-    float cameraDistance = modelRadius * 2.0f * zoomFactor;
-
-    float camX = modelCenter.x + cameraDistance * cos(glm::radians(angle));
-    float camZ = modelCenter.z + cameraDistance * sin(glm::radians(angle));
-    vec3 cameraPos = vec3(camX, modelCenter.y, camZ);
-
-    // Set light position slightly above camera
-    vec3 lightPosition = cameraPos + vec3(0.0f, 500.0f, 0.0f);
+    // Set shader uniforms for light and view positions
     prog.setUniform("lightPos", lightPosition);
-    prog.setUniform("viewPos", cameraPos);
+    prog.setUniform("viewPos", currentCameraPos);
 
     // Set model transformations
     model = glm::mat4(1.0f);

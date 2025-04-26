@@ -36,6 +36,12 @@ private:
     float rotationSpeed;   // Speed of camera rotation
     float prevTime;        // Previous frame time
     float zoomFactor;      // Camera distance multiplier
+    float fixedCameraAngle; // Fixed camera angle (in degrees)
+
+    // Add glm:: prefix to these vector types
+    glm::vec3 currentCameraPos;
+    glm::vec3 currentModelCenter;
+    float currentModelRadius;
 
     // HDR framebuffer objects
     GLuint hdrFBO;
