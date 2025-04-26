@@ -9,6 +9,8 @@ out vec4 FragColor;   // Final output color
 
 // Material and scene uniforms
 uniform vec3 lightPos;        // Light position in world space
+uniform float lightRadius = 50.0;  // Default size if not specified
+uniform float lightIntensity = 1.2; // Moderate intensity - between dark and bright
 uniform vec3 viewPos;         // Camera position in world space
 uniform sampler2D albedoMap;  // Base color texture
 uniform sampler2D normalMap;  // Normal map for surface detail
@@ -16,7 +18,7 @@ uniform sampler2D metallicMap; // Metallic properties texture
 uniform sampler2D roughnessMap; // Surface roughness texture
 uniform sampler2D aoMap;      // Ambient occlusion texture
 uniform samplerCube environmentMap; // Skybox texture for environment reflections
-uniform float chromaticAberrationStrength = 0.05; // Strength of the chromatic aberration effect
+uniform float chromaticAberrationStrength = 0.05;
 
 const float PI = 3.14159265359;
 
@@ -24,6 +26,7 @@ const float PI = 3.14159265359;
 vec3 getNormalFromMap()
 {
     vec3 tangentNormal = texture(normalMap, TexCoords).xyz * 2.0 - 1.0;
+    // Using reference shader's normal mapping approach
     return normalize(TBN * tangentNormal);
 }
 
@@ -72,7 +75,7 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0, float roughness)
     return scaledF0 + (max(vec3(1.0 - roughness), scaledF0) - scaledF0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
-// Fresnel-Schlick for environment reflections
+//Fresnel-Schlick for environment reflections
 vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
 {
     vec3 scaledF0 = F0 * 0.3;
@@ -93,47 +96,72 @@ void main()
     
     // Combine channels
     vec3 albedo = vec3(albedoR.r, albedoG.g, albedoB.b);
+    // Using reference shader's exact albedo brightness
     albedo *= 0.3;
 
+    // material parameter handling
     float metallic = texture(metallicMap, TexCoords).r;
     float roughness = texture(roughnessMap, TexCoords).r;
     float ao = texture(aoMap, TexCoords).r;
 
+    //normal mapping
     vec3 N = getNormalFromMap();
     vec3 V = normalize(viewPos - FragPos);
+    
+    // F0 calculation
     vec3 F0 = mix(vec3(0.04), albedo, metallic * 0.7);
 
     // Direct lighting calculation
     vec3 L = normalize(lightPos - FragPos);
     vec3 H = normalize(V + L);
+    
+    // Calculate distance to light for attenuation (keeping from current shader)
+    float distance = length(lightPos - FragPos);
+    
+    //BRDF values
     float NDF = DistributionGGX(N, H, roughness);
     float G = GeometrySmith(N, V, L, roughness);
     vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0, roughness);
 
     vec3 numerator = NDF * G * F;
     float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+    
+    // specular scaling
     vec3 specular = numerator / denominator * 0.8;
 
-    vec3 kS = F * 0.8;
+    // kS and kD calculations
+    vec3 kS = F * 0.8; 
     vec3 kD = (1.0 - kS) * (1.0 - metallic * 0.7);
     float NdotL = max(dot(N, L), 0.0);
-    vec3 Lo = (kD * albedo / PI + specular) * NdotL;
+    
+    // Calculate light attenuation (keeping from current shader but applying reference mood)
+    float attenuation = 1.0 / (1.0 + (distance * distance) / (lightRadius * lightRadius));
+    
+    // Apply light with attenuation and intensity from current shader
+    vec3 Lo = (kD * albedo / PI + specular) * NdotL * attenuation * lightIntensity;
 
-    // Environment reflection calculation
+    // Environment reflection calculation using reference shader parameters
     vec3 R = reflect(-V, N);
     vec3 F_roughness = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
-    vec3 kS_env = F_roughness * 0.8;
-    vec3 kD_env = (1.0 - kS_env) * (1.0 - metallic * 0.7);
+    vec3 kS_env = F_roughness * 0.8; // Using exact reference value
+    vec3 kD_env = (1.0 - kS_env) * (1.0 - metallic * 0.7); // Using exact reference value
     
+    // environment reflection calculation
     vec3 envReflection = pow(texture(environmentMap, R).rgb, vec3(0.8));
+    
+    // environment BRDF scaling
     vec3 envBRDF = kD_env * albedo + kS_env * envReflection;
 
-    // Final color composition
+    // ambient lighting
     vec3 ambient = vec3(0.01) * albedo * ao;
+    
+    // Final color composition with reference shader's exact environment contribution
     vec3 color = ambient + Lo + envBRDF * 0.8;
-
-    // Tone mapping and gamma correction
+    
+    // tone mapping
     color = color / (color + vec3(0.8));
+    
+    // gamma correction
     color = pow(color, vec3(1.0/2.0));
 
     FragColor = vec4(color, 1.0);

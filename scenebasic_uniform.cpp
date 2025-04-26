@@ -20,7 +20,15 @@ SceneBasic_Uniform::SceneBasic_Uniform() :
     fixedCameraAngle(270.0f),
     currentCameraPos(0.0f),
     currentModelCenter(0.0f),
-    currentModelRadius(0.0f) { 
+    currentModelRadius(0.0f),
+    lightOrbitAngle(0.05f),
+    lightOrbitSpeed(0.8f),      // Speed of orbit
+    lightVerticalOffset(0.5f),
+    lightVerticalSpeed(0.2f),    // Speed of vertical bobbing
+    lightRadiusOffset(0.5f),
+    lightRadiusSpeed(0.2f),      // Speed of radius changes
+    lightRadius(800.0f),       // Size of the light source
+    lightIntensity(1.5f) {
 
     mesh = ObjMesh::load("media/models/7345nq347b.obj", true);
     if (!mesh) {
@@ -29,6 +37,7 @@ SceneBasic_Uniform::SceneBasic_Uniform() :
     }
     model = mat4(1.0f);
 }
+
 
 void SceneBasic_Uniform::initScene() {
     compile();
@@ -84,9 +93,15 @@ void SceneBasic_Uniform::update(float t) {
     float deltaTime = t - prevTime;
     prevTime = t;
 
-    // Update light rotation angle, not camera angle
-    angle += rotationSpeed * deltaTime;
-    if (angle > 360.0f) angle -= 360.0f;
+    // Update light orbit angle
+    lightOrbitAngle += lightOrbitSpeed * deltaTime;
+    if (lightOrbitAngle > 360.0f) lightOrbitAngle -= 360.0f;
+
+    // Create smooth vertical bobbing for light using sine wave
+    lightVerticalOffset = sin(t * lightVerticalSpeed) * currentModelRadius * 3.0f;
+
+    // Create smooth radius variation for light using cosine wave
+    lightRadiusOffset = cos(t * lightRadiusSpeed) * currentModelRadius * 2.0f;
 }
 
 void SceneBasic_Uniform::compile() {
@@ -135,7 +150,7 @@ void SceneBasic_Uniform::render() {
     float camZ = modelCenter.z + cameraDistance * 0.7f * sin(glm::radians(fixedCameraAngle));
 
     // Position camera higher above to achieve top-down angled view
-    float camY = modelCenter.y + modelRadius * 50.0f; // Increased height multiplier to 50.0f
+    float camY = modelCenter.y + modelRadius * 50.0f; // Fixed height position
     vec3 cameraPos = vec3(camX, camY, camZ);
     currentCameraPos = cameraPos;
 
@@ -235,16 +250,23 @@ void SceneBasic_Uniform::renderModel() {
     glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTex);
     prog.setUniform("environmentMap", 5);
 
-    // Calculate rotating light position
-    float lightOrbitRadius = currentModelRadius * 4.0f;
-    float lightX = currentModelCenter.x + lightOrbitRadius * cos(glm::radians(angle));
-    float lightZ = currentModelCenter.z + lightOrbitRadius * sin(glm::radians(angle));
-    float lightY = currentModelCenter.y + currentModelRadius * 2.0f; // Keep light above the ship
+    // Calculate animated light position that dances around the top of the ship
+    float baseOrbitRadius = currentModelRadius * 4.0f;
+    float lightOrbitRadius = baseOrbitRadius + lightRadiusOffset;
+
+    float lightX = currentModelCenter.x + lightOrbitRadius * cos(glm::radians(lightOrbitAngle));
+    float lightZ = currentModelCenter.z + lightOrbitRadius * sin(glm::radians(lightOrbitAngle));
+
+    // Position light higher above with animated vertical bobbing
+    float lightY = currentModelCenter.y + currentModelRadius * 10.0f + lightVerticalOffset;
+
     vec3 lightPosition = vec3(lightX, lightY, lightZ);
 
     // Set shader uniforms for light and view positions
     prog.setUniform("lightPos", lightPosition);
+    prog.setUniform("lightRadius", lightRadius);
     prog.setUniform("viewPos", currentCameraPos);
+    prog.setUniform("lightIntensity", lightIntensity);
 
     // Set model transformations
     model = glm::mat4(1.0f);

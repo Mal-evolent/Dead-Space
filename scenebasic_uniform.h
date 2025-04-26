@@ -38,6 +38,17 @@ private:
     float zoomFactor;      // Camera distance multiplier
     float fixedCameraAngle; // Fixed camera angle (in degrees)
 
+    //Light control
+    float lightOrbitAngle;     // Angle for orbital motion around the ship
+    float lightOrbitSpeed;     // Speed of orbit
+    float lightVerticalOffset; // For vertical bobbing motion
+    float lightVerticalSpeed;  // Speed of vertical motion
+    float lightRadiusOffset;   // For varying distance from center
+    float lightRadiusSpeed;    // Speed of radius variation
+    float lightRadius;  // Size of the light source
+	float lightIntensity; // Intensity of the light source
+
+
     // Add glm:: prefix to these vector types
     glm::vec3 currentCameraPos;
     glm::vec3 currentModelCenter;
