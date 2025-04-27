@@ -7,7 +7,7 @@ ShipController::ShipController() :
     position(0.0f), 
     direction(0.0f, 0.0f, -1.0f), 
     speed(500.0f),
-    rotationSpeed(90.0f) // 90 degrees per second rotation
+    rotationSpeed(15.0f)
 {
     std::cout << "ShipController initialized with speed: " << speed << std::endl;
     std::cout << "Rotation speed: " << rotationSpeed << " degrees per second" << std::endl;

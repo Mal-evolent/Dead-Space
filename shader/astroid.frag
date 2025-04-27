@@ -31,15 +31,20 @@ void main()
     vec3 tangentNormal = texture(normalMap, sphericalUV).xyz * 2.0 - 1.0;
     vec3 N = normalize(TBN * tangentNormal);
     
-    // Calculate lighting direction
+    // Calculate lighting direction and distance
     vec3 L = normalize(lightPos - FragPos);
+    float distance = length(lightPos - FragPos);
+    
+    // Apply distance attenuation to light
+    // Adjust the constants to control falloff rate
+    float attenuation = 1.0 / (1.0 + 0.0002 * distance + 0.00000005 * distance * distance);
     
     // Basic ambient component
     vec3 ambient = albedo * 0.3;
     
-    // Simple diffuse lighting
+    // Simple diffuse lighting with attenuation
     float diff = max(dot(N, L), 0.0);
-    vec3 diffuse = diff * albedo * lightIntensity;
+    vec3 diffuse = diff * albedo * lightIntensity * attenuation;
     
     // Combine lighting components
     vec3 result = ambient + diffuse;

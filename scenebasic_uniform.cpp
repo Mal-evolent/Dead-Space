@@ -5,7 +5,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include "ShipController.h"
-
+#include "Asteroid.h"
 
 using std::cerr;
 using std::endl;
@@ -27,7 +27,8 @@ SceneBasic_Uniform::SceneBasic_Uniform() :
     lightRadiusOffset(0.5f),
     lightRadiusSpeed(0.2f),      // Speed of radius changes
     lightRadius(800.0f),       // Size of the light source
-    lightIntensity(10.0f)
+    lightIntensity(5.0f),
+    asteroidManager(&astroidProgram) // Initialize AsteroidManager with shader program
 {
     mesh = ObjMesh::load("media/models/7345nq347b.obj", true);
     if (!mesh) {
@@ -43,7 +44,6 @@ SceneBasic_Uniform::SceneBasic_Uniform() :
     }
     model = mat4(1.0f);
 }
-
 
 void SceneBasic_Uniform::initScene() {
     compile();
@@ -113,8 +113,21 @@ void SceneBasic_Uniform::initScene() {
         cerr << "[INFO] Asteroid normal texture loaded successfully: " << astroidNormalMap << endl;
     }
 
-}
+    // Initialize the AsteroidManager
+    if (asteroidManager.initialize(
+        "media/models/LPP.obj",
+        "media/textures/Astroid Textures/LPP_1001_BaseColor.png",
+        "media/textures/Astroid Textures/LPP_1001_Normal.png")) {
 
+        // Generate static asteroid field
+        glm::vec3 asteroidFieldCenter = glm::vec3(2500.0f, 2000.0f, 2500.0f);
+        asteroidManager.generateAsteroids(asteroidFieldCenter, 10000.0f, 500);
+        cerr << "[INFO] Asteroid field generated successfully" << endl;
+    }
+    else {
+        cerr << "[ERROR] Failed to initialize asteroid manager" << endl;
+    }
+}
 
 void SceneBasic_Uniform::update(float t) {
     float deltaTime = t - prevTime;
@@ -132,8 +145,10 @@ void SceneBasic_Uniform::update(float t) {
 
     // Create smooth radius variation for light using cosine wave
     lightRadiusOffset = cos(t * lightRadiusSpeed) * currentModelRadius * 2.0f;
-}
 
+    // Update asteroids (only rotation, not position)
+    asteroidManager.update(deltaTime, glm::vec3(0.0f));
+}
 
 void SceneBasic_Uniform::compile() {
     try {
@@ -167,7 +182,6 @@ void SceneBasic_Uniform::compile() {
     }
 }
 
-
 void SceneBasic_Uniform::render() {
     // First pass: render scene to HDR framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
@@ -197,7 +211,7 @@ void SceneBasic_Uniform::render() {
     // Apply the offset with proper height
     float camX = modelCenter.x + cameraOffset.x;
     float camZ = modelCenter.z + cameraOffset.z;
-    float camY = modelCenter.y + modelRadius * 50.0f; // Fixed height position
+    float camY = modelCenter.y + modelRadius * 50.0f;
 
     vec3 cameraPos = vec3(camX, camY, camZ);
     currentCameraPos = cameraPos;
@@ -222,7 +236,7 @@ void SceneBasic_Uniform::render() {
 
     renderSkybox();
     renderModel();
-	renderAstroid();
+    renderAsteroid();
 
     // Second pass: tone mapping and gamma correction
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -242,24 +256,8 @@ void SceneBasic_Uniform::render() {
     glEnable(GL_DEPTH_TEST);
 }
 
-void SceneBasic_Uniform::renderAstroid() {
-    // Use the asteroid shader program
-    astroidProgram.use();
-
-    // Set the view and projection matrices (these are constant for the scene)
-    astroidProgram.setUniform("view", view);
-    astroidProgram.setUniform("projection", projection);
-
-    // Bind asteroid textures
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, astroidAlbedoMap);
-    astroidProgram.setUniform("albedoMap", 0);
-
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, astroidNormalMap);
-    astroidProgram.setUniform("normalMap", 1);
-
-    // Calculate the light position (same as in renderModel)
+void SceneBasic_Uniform::renderAsteroid() {
+    // Calculate the light position
     float baseOrbitRadius = currentModelRadius * 4.0f;
     float lightOrbitRadius = baseOrbitRadius + lightRadiusOffset;
 
@@ -268,38 +266,9 @@ void SceneBasic_Uniform::renderAstroid() {
     float lightY = currentModelCenter.y + currentModelRadius * 10.0f + lightVerticalOffset;
     vec3 lightPosition = vec3(lightX, lightY, lightZ);
 
-    // Set light and camera uniforms
-    astroidProgram.setUniform("lightPos", lightPosition);
-    astroidProgram.setUniform("lightRadius", lightRadius);
-    astroidProgram.setUniform("viewPos", currentCameraPos);
-    astroidProgram.setUniform("lightIntensity", lightIntensity);
-
-    // Save the original model matrix
-    glm::mat4 originalModel = model;
-
-    // Construct the model matrix for the asteroid
-    glm::vec3 fixedAsteroidPosition = glm::vec3(5000.0f, 2000.0f, 5000.0f); // Fixed position
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, fixedAsteroidPosition); // Position the asteroid
-    model = glm::rotate(model, glm::radians(prevTime * 3.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Spin
-    model = glm::scale(model, glm::vec3(300.0f)); // Scale to appropriate size
-
-    // Calculate the normal matrix (inverse transpose of the model matrix)
-    glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(model)));
-
-    // Pass the model and normal matrices to the shader
-    astroidProgram.setUniform("model", model);
-    astroidProgram.setUniform("normalMatrix", normalMatrix);
-
-    // Render the asteroid mesh
-    astroidMesh->render();
-
-    // Restore the original model matrix
-    model = originalModel;
+    // Use the asteroid manager to render all asteroids
+    asteroidManager.render(view, projection, lightPosition, currentCameraPos);
 }
-
-
-
 
 void SceneBasic_Uniform::resize(int w, int h) {
     width = w;
@@ -405,7 +374,6 @@ void SceneBasic_Uniform::renderModel() {
     setMatrices();
     mesh->render();
 }
-
 
 void SceneBasic_Uniform::renderQuad() {
     static GLuint quadVAO = 0;
