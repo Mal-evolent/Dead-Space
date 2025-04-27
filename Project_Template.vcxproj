@@ -168,8 +168,12 @@
     <ClCompile Include="trianglemesh.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="shader\astroid.frag" />
+    <None Include="shader\astroid.vert" />
     <None Include="shader\basic_uniform.frag" />
     <None Include="shader\basic_uniform.vert" />
+    <None Include="shader\hdr.frag" />
+    <None Include="shader\hdr.vert" />
     <None Include="shader\skybox.frag" />
     <None Include="shader\skybox.vert" />
   </ItemGroup>

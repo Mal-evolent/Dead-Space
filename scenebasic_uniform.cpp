@@ -27,11 +27,18 @@ SceneBasic_Uniform::SceneBasic_Uniform() :
     lightRadiusOffset(0.5f),
     lightRadiusSpeed(0.2f),      // Speed of radius changes
     lightRadius(800.0f),       // Size of the light source
-    lightIntensity(1.5f)
+    lightIntensity(10.0f)
 {
     mesh = ObjMesh::load("media/models/7345nq347b.obj", true);
     if (!mesh) {
         cerr << "[ERROR] Failed to load model!" << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    // Load the LPP model
+    astroidMesh = ObjMesh::load("media/models/LPP.obj", true);
+    if (!astroidMesh) {
+        cerr << "[ERROR] Failed to load LPP model!" << endl;
         exit(EXIT_FAILURE);
     }
     model = mat4(1.0f);
@@ -81,12 +88,33 @@ void SceneBasic_Uniform::initScene() {
     roughnessMap = Texture::loadTexture("media/textures/spaceship textures/7345nq347b_roughness.png");
     aoMap = Texture::loadTexture("media/textures/spaceship textures/7345nq347b_ao.png");
 
+    // Load asteroid textures
+    astroidAlbedoMap = Texture::loadTexture("media/textures/Astroid Textures/LPP_1001_BaseColor.png");
+    astroidNormalMap = Texture::loadTexture("media/textures/Astroid Textures/LPP_1001_Normal.png");
+
+    // Error check for ship textures
     if (albedoMap == GLuint(0) || normalMap == GLuint(0) || metallicMap == GLuint(0) ||
         roughnessMap == GLuint(0) || aoMap == GLuint(0)) {
         cerr << "[ERROR] One or more PBR textures failed to load!" << endl;
         exit(EXIT_FAILURE);
     }
+
+    if (astroidAlbedoMap == GLuint(0)) {
+        cerr << "[WARNING] Asteroid albedo texture failed to load!" << endl;
+    }
+    else {
+        cerr << "[INFO] Asteroid albedo texture loaded successfully: " << astroidAlbedoMap << endl;
+    }
+
+    if (astroidNormalMap == GLuint(0)) {
+        cerr << "[WARNING] Asteroid normal texture failed to load!" << endl;
+    }
+    else {
+        cerr << "[INFO] Asteroid normal texture loaded successfully: " << astroidNormalMap << endl;
+    }
+
 }
+
 
 void SceneBasic_Uniform::update(float t) {
     float deltaTime = t - prevTime;
@@ -94,9 +122,6 @@ void SceneBasic_Uniform::update(float t) {
 
     // Handle ship movement
     shipController.handleInput(glfwGetCurrentContext(), deltaTime);
-
-    // Note: We no longer set the model matrix here,
-    // as it will be set properly in renderModel()
 
     // Update light orbit angle
     lightOrbitAngle += lightOrbitSpeed * deltaTime;
@@ -118,6 +143,12 @@ void SceneBasic_Uniform::compile() {
         prog.link();
         prog.findUniformLocations();
 
+        // Compile and link asteroid shader
+        astroidProgram.compileShader("shader/astroid.vert");
+        astroidProgram.compileShader("shader/astroid.frag");
+        astroidProgram.link();
+        astroidProgram.findUniformLocations();
+
         // Compile and link skybox shader
         skyboxProgram.compileShader("shader/skybox.vert");
         skyboxProgram.compileShader("shader/skybox.frag");
@@ -135,6 +166,7 @@ void SceneBasic_Uniform::compile() {
         exit(EXIT_FAILURE);
     }
 }
+
 
 void SceneBasic_Uniform::render() {
     // First pass: render scene to HDR framebuffer
@@ -173,8 +205,6 @@ void SceneBasic_Uniform::render() {
     // Create a look-at point in front of the ship for better forward visibility
     float lookAheadDistance = modelRadius * 1.5f;
 
-    // Calculate look-at point directly using the ship's center and direction
-    // MODIFIED: Using negative direction to look at the back of the ship instead of the front
     vec3 lookAtPoint = modelCenter + vec3(
         -lookAheadDistance * shipDirection.x,
         -modelRadius * 0.8f, // Look slightly downward
@@ -192,6 +222,7 @@ void SceneBasic_Uniform::render() {
 
     renderSkybox();
     renderModel();
+	renderAstroid();
 
     // Second pass: tone mapping and gamma correction
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -210,6 +241,63 @@ void SceneBasic_Uniform::render() {
     renderQuad();
     glEnable(GL_DEPTH_TEST);
 }
+
+void SceneBasic_Uniform::renderAstroid() {
+    // Use the asteroid shader program
+    astroidProgram.use();
+
+    // Set the view and projection matrices (these are constant for the scene)
+    astroidProgram.setUniform("view", view);
+    astroidProgram.setUniform("projection", projection);
+
+    // Bind asteroid textures
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, astroidAlbedoMap);
+    astroidProgram.setUniform("albedoMap", 0);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, astroidNormalMap);
+    astroidProgram.setUniform("normalMap", 1);
+
+    // Calculate the light position (same as in renderModel)
+    float baseOrbitRadius = currentModelRadius * 4.0f;
+    float lightOrbitRadius = baseOrbitRadius + lightRadiusOffset;
+
+    float lightX = currentModelCenter.x + lightOrbitRadius * cos(glm::radians(lightOrbitAngle));
+    float lightZ = currentModelCenter.z + lightOrbitRadius * sin(glm::radians(lightOrbitAngle));
+    float lightY = currentModelCenter.y + currentModelRadius * 10.0f + lightVerticalOffset;
+    vec3 lightPosition = vec3(lightX, lightY, lightZ);
+
+    // Set light and camera uniforms
+    astroidProgram.setUniform("lightPos", lightPosition);
+    astroidProgram.setUniform("lightRadius", lightRadius);
+    astroidProgram.setUniform("viewPos", currentCameraPos);
+    astroidProgram.setUniform("lightIntensity", lightIntensity);
+
+    // Save the original model matrix
+    glm::mat4 originalModel = model;
+
+    // Construct the model matrix for the asteroid
+    glm::vec3 fixedAsteroidPosition = glm::vec3(5000.0f, 2000.0f, 5000.0f); // Fixed position
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, fixedAsteroidPosition); // Position the asteroid
+    model = glm::rotate(model, glm::radians(prevTime * 3.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Spin
+    model = glm::scale(model, glm::vec3(300.0f)); // Scale to appropriate size
+
+    // Calculate the normal matrix (inverse transpose of the model matrix)
+    glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(model)));
+
+    // Pass the model and normal matrices to the shader
+    astroidProgram.setUniform("model", model);
+    astroidProgram.setUniform("normalMatrix", normalMatrix);
+
+    // Render the asteroid mesh
+    astroidMesh->render();
+
+    // Restore the original model matrix
+    model = originalModel;
+}
+
 
 
 

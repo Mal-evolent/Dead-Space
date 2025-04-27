@@ -17,19 +17,25 @@ class SceneBasic_Uniform : public Scene
 {
 private:
     // Shader programs for model and skybox
-    GLSLProgram prog, skyboxProgram;
+    GLSLProgram prog, skyboxProgram, astroidProgram;
     GLuint skyboxTex;
 
-    // PBR material textures
+	// PBR material textures(Spaceship)
     GLuint albedoMap;
     GLuint normalMap;
     GLuint metallicMap;
     GLuint roughnessMap;
     GLuint aoMap;
 
+	// Astroid textures
+    GLuint astroidAlbedoMap;
+    GLuint astroidNormalMap;
+
+
     // Scene objects and transforms
     SkyBox sky;
     std::unique_ptr<ObjMesh> mesh;
+	std::unique_ptr<ObjMesh> astroidMesh;
     glm::mat4 model, view, projection;
     
     // Camera control
@@ -47,7 +53,6 @@ private:
 	float lightIntensity; // Intensity of the light source
 
 
-    // Add glm:: prefix to these vector types
     glm::vec3 currentCameraPos;
     glm::vec3 currentModelCenter;
     float currentModelRadius;
@@ -64,6 +69,7 @@ private:
     void setMatrices();
     void renderSkybox();
     void renderModel();
+	void renderAstroid();
     void renderQuad();
 
 public:

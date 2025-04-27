@@ -22,14 +22,14 @@ void ShipController::handleInput(GLFWwindow* window, float deltaTime) {
     // Handle rotation with Q and E keys - make sure the directions are consistent
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
         // Rotate left (counter-clockwise around Y axis)
-        float rotationAngle = glm::radians(-rotationSpeed * deltaTime); // Negative for counter-clockwise
+        float rotationAngle = glm::radians(rotationSpeed * deltaTime); // Negative for counter-clockwise
         direction = glm::rotateY(direction, rotationAngle);
         rotated = true;
         std::cout << "Key Q pressed - Rotating left" << std::endl;
     }
     if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
         // Rotate right (clockwise around Y axis)
-        float rotationAngle = glm::radians(rotationSpeed * deltaTime); // Positive for clockwise
+        float rotationAngle = glm::radians(-rotationSpeed * deltaTime); // Positive for clockwise
         direction = glm::rotateY(direction, rotationAngle);
         rotated = true;
         std::cout << "Key E pressed - Rotating right" << std::endl;

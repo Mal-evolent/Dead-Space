@@ -66,9 +66,6 @@
     <ClCompile Include="ShipController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CameraManager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shader\basic_uniform.frag">
@@ -81,6 +78,18 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="shader\skybox.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shader\astroid.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shader\astroid.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shader\hdr.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shader\hdr.vert">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>
@@ -137,9 +146,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ShipController.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CameraManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
