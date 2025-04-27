@@ -5,7 +5,8 @@ out vec4 FragColor;
 
 uniform sampler2D hdrBuffer;
 uniform float exposure;
-uniform float time;  // Add time uniform for animated noise
+uniform float time;
+uniform float damageEffect; // 0.0 = no damage, 1.0 = full damage flash
 
 // Noise functions
 float random(vec2 co) {
@@ -63,6 +64,9 @@ void main()
     
     // Gamma correction 
     mapped = pow(mapped, vec3(1.0 / gamma));
+    
+    // Apply damage effect (red tint)
+    mapped = mix(mapped, vec3(1.0, 0.0, 0.0), damageEffect);
   
     FragColor = vec4(mapped, 1.0);
-} 
+}

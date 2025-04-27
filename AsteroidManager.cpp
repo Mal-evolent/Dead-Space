@@ -117,7 +117,7 @@ void AsteroidManager::addAsteroid(const glm::vec3& position) {
 // Update asteroid rotations
 void AsteroidManager::update(float deltaTime, const glm::vec3& playerPosition) {
 
-    // Update each asteroid's rotation only, not position
+    // Update each asteroid's rotation
     for (auto& asteroid : asteroids) {
         // Update rotation
         asteroid.rotation.y += deltaTime * asteroid.rotationSpeed;

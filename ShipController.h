@@ -1,6 +1,7 @@
 #ifndef SHIPCONTROLLER_H
 #define SHIPCONTROLLER_H
 
+#define GLFW_INCLUDE_NONE 
 #include <glm/glm.hpp>
 #include <GLFW/glfw3.h>
 

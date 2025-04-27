@@ -154,6 +154,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AsteroidManager.cpp" />
+    <ClCompile Include="CollisionDetection.cpp" />
     <ClCompile Include="cube.cpp" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="helper\glslprogram.cpp" />
@@ -181,6 +182,7 @@
   <ItemGroup>
     <ClInclude Include="aabb.h" />
     <ClInclude Include="Asteroid.h" />
+    <ClInclude Include="CollisionDetection.h" />
     <ClInclude Include="cube.h" />
     <ClInclude Include="drawable.h" />
     <ClInclude Include="helper\glslprogram.h" />

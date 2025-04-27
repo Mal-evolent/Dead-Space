@@ -38,9 +38,17 @@ public:
     void update(float deltaTime, const glm::vec3& playerPosition);
     void render(const glm::mat4& view, const glm::mat4& projection, 
                const glm::vec3& lightPos, const glm::vec3& viewPos);
-    
-    // Optional: Add/remove specific asteroids
+
+    Aabb getBoundingBox() const {
+        if (asteroidMesh) {
+            return asteroidMesh->getBoundingBox();
+        }
+        return Aabb();
+    }
+
     void addAsteroid(const glm::vec3& position);
+    const std::vector<Asteroid>& getAsteroids() const { return asteroids; }
+
     void clear();
 };
 

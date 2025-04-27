@@ -6,6 +6,7 @@
 #include <glm/gtx/string_cast.hpp>
 #include "ShipController.h"
 #include "Asteroid.h"
+#include "CollisionDetection.h"
 
 using std::cerr;
 using std::endl;
@@ -21,14 +22,18 @@ SceneBasic_Uniform::SceneBasic_Uniform() :
     currentModelCenter(0.0f),
     currentModelRadius(0.0f),
     lightOrbitAngle(0.05f),
-    lightOrbitSpeed(0.8f),      // Speed of orbit
+    lightOrbitSpeed(0.8f),
     lightVerticalOffset(0.5f),
-    lightVerticalSpeed(0.2f),    // Speed of vertical bobbing
+    lightVerticalSpeed(0.2f),
     lightRadiusOffset(0.5f),
-    lightRadiusSpeed(0.2f),      // Speed of radius changes
-    lightRadius(800.0f),       // Size of the light source
+    lightRadiusSpeed(0.2f),
+    lightRadius(800.0f),
     lightIntensity(5.0f),
-    asteroidManager(&astroidProgram) // Initialize AsteroidManager with shader program
+    asteroidManager(&astroidProgram),
+    collisionDetected(false),
+    timeSinceLastCollision(0.0f),
+    collisionCooldown(1.5f),
+    shipHealth(100)
 {
     mesh = ObjMesh::load("media/models/7345nq347b.obj", true);
     if (!mesh) {
@@ -36,7 +41,6 @@ SceneBasic_Uniform::SceneBasic_Uniform() :
         exit(EXIT_FAILURE);
     }
 
-    // Load the LPP model
     astroidMesh = ObjMesh::load("media/models/LPP.obj", true);
     if (!astroidMesh) {
         cerr << "[ERROR] Failed to load LPP model!" << endl;
@@ -99,20 +103,6 @@ void SceneBasic_Uniform::initScene() {
         exit(EXIT_FAILURE);
     }
 
-    if (astroidAlbedoMap == GLuint(0)) {
-        cerr << "[WARNING] Asteroid albedo texture failed to load!" << endl;
-    }
-    else {
-        cerr << "[INFO] Asteroid albedo texture loaded successfully: " << astroidAlbedoMap << endl;
-    }
-
-    if (astroidNormalMap == GLuint(0)) {
-        cerr << "[WARNING] Asteroid normal texture failed to load!" << endl;
-    }
-    else {
-        cerr << "[INFO] Asteroid normal texture loaded successfully: " << astroidNormalMap << endl;
-    }
-
     // Initialize the AsteroidManager
     if (asteroidManager.initialize(
         "media/models/LPP.obj",
@@ -122,11 +112,19 @@ void SceneBasic_Uniform::initScene() {
         // Generate static asteroid field
         glm::vec3 asteroidFieldCenter = glm::vec3(2500.0f, 2000.0f, 2500.0f);
         asteroidManager.generateAsteroids(asteroidFieldCenter, 10000.0f, 500);
-        cerr << "[INFO] Asteroid field generated successfully" << endl;
     }
     else {
         cerr << "[ERROR] Failed to initialize asteroid manager" << endl;
     }
+
+    // Initialize collision detection system
+    Aabb modelBBox = mesh->getBoundingBox();
+    float shipRadius = glm::length(modelBBox.max - modelBBox.min) * 0.5f * 80.0f;
+
+    collisionSystem.initialize(&shipController, &asteroidManager, shipRadius);
+    collisionSystem.setCollisionCallback([this](const Asteroid& asteroid) {
+        this->handleCollision(asteroid);
+        });
 }
 
 void SceneBasic_Uniform::update(float t) {
@@ -148,6 +146,17 @@ void SceneBasic_Uniform::update(float t) {
 
     // Update asteroids (only rotation, not position)
     asteroidManager.update(deltaTime, glm::vec3(0.0f));
+
+    // Update collision detection system
+    collisionSystem.update(deltaTime);
+
+    // Update collision cooldown timer if needed
+    if (collisionDetected) {
+        timeSinceLastCollision += deltaTime;
+        if (timeSinceLastCollision >= collisionCooldown) {
+            collisionDetected = false;
+        }
+    }
 }
 
 void SceneBasic_Uniform::compile() {
@@ -179,6 +188,22 @@ void SceneBasic_Uniform::compile() {
     catch (GLSLProgramException& e) {
         cerr << "[ERROR] Shader compilation error: " << e.what() << endl;
         exit(EXIT_FAILURE);
+    }
+}
+
+void SceneBasic_Uniform::handleCollision(const Asteroid& asteroid) {
+    if (!collisionDetected) { // Only handle if not already in cooldown
+        collisionDetected = true;
+        timeSinceLastCollision = 0.0f;
+
+        // Reduce ship health on collision
+        shipHealth -= 10;
+
+        // Game over condition
+        if (shipHealth <= 0) {
+            cerr << "[GAME OVER] Ship destroyed!" << endl;
+            // END GAME LOGIC
+        }
     }
 }
 
@@ -234,6 +259,17 @@ void SceneBasic_Uniform::render() {
 
     projection = glm::perspective(glm::radians(75.0f), (float)width / height, 0.1f, 50000.0f);
 
+    // Apply screen shake if collision was detected
+    if (collisionDetected && timeSinceLastCollision < 0.5f) {
+        // Simple screen shake effect - subtle random offsets
+        float shakeMagnitude = 0.3f * (0.5f - timeSinceLastCollision);
+        float offsetX = ((rand() % 1000) / 1000.0f - 0.5f) * shakeMagnitude;
+        float offsetY = ((rand() % 1000) / 1000.0f - 0.5f) * shakeMagnitude;
+
+        // Apply shake to view matrix
+        view = glm::translate(view, vec3(offsetX, offsetY, 0.0f));
+    }
+
     renderSkybox();
     renderModel();
     renderAsteroid();
@@ -246,6 +282,15 @@ void SceneBasic_Uniform::render() {
     hdrProgram.setUniform("hdrBuffer", 0);
     hdrProgram.setUniform("exposure", exposure);
     hdrProgram.setUniform("time", prevTime);
+
+    if (collisionDetected && timeSinceLastCollision < 0.3f) {
+        // Red flash intensity based on how recent the collision was
+        float flashIntensity = 0.5f * (0.3f - timeSinceLastCollision) / 0.3f;
+        hdrProgram.setUniform("damageEffect", flashIntensity);
+    }
+    else {
+        hdrProgram.setUniform("damageEffect", 0.0f);
+    }
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, hdrColorBuffer);
@@ -334,8 +379,6 @@ void SceneBasic_Uniform::renderModel() {
 
     float lightX = currentModelCenter.x + lightOrbitRadius * cos(glm::radians(lightOrbitAngle));
     float lightZ = currentModelCenter.z + lightOrbitRadius * sin(glm::radians(lightOrbitAngle));
-
-    // Position light higher above with animated vertical bobbing
     float lightY = currentModelCenter.y + currentModelRadius * 10.0f + lightVerticalOffset;
 
     vec3 lightPosition = vec3(lightX, lightY, lightZ);
@@ -352,14 +395,10 @@ void SceneBasic_Uniform::renderModel() {
 
     // Set model transformations
     model = glm::mat4(1.0f);
-    model = glm::translate(model, shipPosition); // Apply ship position
+    model = glm::translate(model, shipPosition);
 
     // Calculate rotation based on ship direction
-    // The default direction is (0,0,-1), so we need to calculate the rotation needed
-    // to turn from the default to the current direction
-
-    // First, calculate the angle between the default direction and current direction in the XZ plane
-    float defaultAngle = atan2(0.0f, -1.0f); // Default direction is (0,0,-1)
+    float defaultAngle = atan2(0.0f, -1.0f);
     float currentAngle = atan2(shipDirection.x, shipDirection.z);
     float rotationAngle = currentAngle - defaultAngle;
 

@@ -10,6 +10,7 @@
 #include "texture.h"
 #include "ShipController.h"
 #include "Asteroid.h"
+#include "CollisionDetection.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -68,6 +69,14 @@ private:
     GLuint hdrColorBuffer;
     GLuint rboDepth;
     float exposure = 0.15f;
+
+    // ======== Collision Detection ========
+    CollisionDetection collisionSystem;
+    bool collisionDetected;
+    float timeSinceLastCollision;
+    float collisionCooldown;
+    int shipHealth;
+    void handleCollision(const Asteroid& asteroid);
 
     // ======== Internal Render Methods ========
     void compile();             // Compile all shaders
