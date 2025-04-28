@@ -182,3 +182,33 @@ void AsteroidManager::render(const glm::mat4& view, const glm::mat4& projection,
 void AsteroidManager::clear() {
     asteroids.clear();
 }
+
+// Calculate bounding box for all asteroid instances
+Aabb AsteroidManager::getBoundingBox() const {
+    Aabb result;
+    if (!asteroidMesh || asteroids.empty()) {
+        return result;
+    }
+
+    // Get the base mesh bounding box
+    Aabb meshBox = asteroidMesh->getBoundingBox();
+
+    // Calculate the size of the mesh
+    glm::vec3 size = meshBox.max - meshBox.min;
+
+    // For each asteroid, calculate its transformed bounding box
+    for (const auto& asteroid : asteroids) {
+        // Calculate the min and max of the transformed asteroid
+        glm::vec3 scaledSize = size * asteroid.scale;
+        glm::vec3 halfSize = scaledSize * 0.5f;
+
+        // Add the transformed box to the result
+        glm::vec3 asteroidMin = asteroid.position - halfSize;
+        glm::vec3 asteroidMax = asteroid.position + halfSize;
+
+        result.add(asteroidMin);
+        result.add(asteroidMax);
+    }
+
+    return result;
+}

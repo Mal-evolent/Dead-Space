@@ -6,6 +6,7 @@
 #include <glm/glm.hpp>
 #include "objmesh.h"
 #include "helper/glslprogram.h"
+#include "aabb.h"
 
 struct Asteroid {
     glm::vec3 position;
@@ -21,25 +22,28 @@ private:
     GLuint albedoMap;
     GLuint normalMap;
     GLSLProgram* shaderProgram;
-    
+
     // Generation parameters
     float spawnRadius;
     int asteroidCount;
-    
+
 public:
     AsteroidManager(GLSLProgram* program);
     ~AsteroidManager();
-    
-    bool initialize(const std::string& meshPath, 
-                   const std::string& albedoPath,
-                   const std::string& normalPath);
-    
+
+    bool initialize(const std::string& meshPath,
+        const std::string& albedoPath,
+        const std::string& normalPath);
+
     void generateAsteroids(const glm::vec3& playerPosition, float radius, int count);
     void update(float deltaTime, const glm::vec3& playerPosition);
-    void render(const glm::mat4& view, const glm::mat4& projection, 
-               const glm::vec3& lightPos, const glm::vec3& viewPos);
+    void render(const glm::mat4& view, const glm::mat4& projection,
+        const glm::vec3& lightPos, const glm::vec3& viewPos);
 
-    Aabb getBoundingBox() const {
+    // Gets the complete bounding box for all asteroids
+    Aabb getBoundingBox() const;
+
+    Aabb getBaseMeshBoundingBox() const {
         if (asteroidMesh) {
             return asteroidMesh->getBoundingBox();
         }

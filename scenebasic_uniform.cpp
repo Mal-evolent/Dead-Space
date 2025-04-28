@@ -119,12 +119,20 @@ void SceneBasic_Uniform::initScene() {
 
     // Initialize collision detection system
     Aabb modelBBox = mesh->getBoundingBox();
-    float shipRadius = glm::length(modelBBox.max - modelBBox.min) * 0.5f * 80.0f;
+
+    // Use the same scale factor that's used for rendering (100.0f)
+    float modelVisualScale = 100.0f;
+    float shipRadius = glm::length(modelBBox.max - modelBBox.min) * 0.5f * modelVisualScale;
+
+    std::cout << "Ship model bounds: min=("
+        << modelBBox.min.x << "," << modelBBox.min.y << "," << modelBBox.min.z
+        << "), max=("
+        << modelBBox.max.x << "," << modelBBox.max.y << "," << modelBBox.max.z << ")" << std::endl;
+    std::cout << "Using ship visual scale: " << modelVisualScale << std::endl;
+    std::cout << "Calculated ship collision radius: " << shipRadius << std::endl;
 
     collisionSystem.initialize(&shipController, &asteroidManager, shipRadius);
-    collisionSystem.setCollisionCallback([this](const Asteroid& asteroid) {
-        this->handleCollision(asteroid);
-        });
+
 }
 
 void SceneBasic_Uniform::update(float t) {
@@ -150,6 +158,13 @@ void SceneBasic_Uniform::update(float t) {
     // Update collision detection system
     collisionSystem.update(deltaTime);
 
+    // Sync collision state with collision system if needed
+    if (collisionSystem.hasCollision() && !collisionDetected) {
+        collisionDetected = true;
+        timeSinceLastCollision = 0.0f;
+        std::cout << "Collision state synchronized from collision system" << std::endl;
+    }
+
     // Update collision cooldown timer if needed
     if (collisionDetected) {
         timeSinceLastCollision += deltaTime;
@@ -158,6 +173,7 @@ void SceneBasic_Uniform::update(float t) {
         }
     }
 }
+
 
 void SceneBasic_Uniform::compile() {
     try {
@@ -192,20 +208,23 @@ void SceneBasic_Uniform::compile() {
 }
 
 void SceneBasic_Uniform::handleCollision(const Asteroid& asteroid) {
-    if (!collisionDetected) { // Only handle if not already in cooldown
-        collisionDetected = true;
-        timeSinceLastCollision = 0.0f;
+    // Always set collision detected to true on impact
+    collisionDetected = true;
+    timeSinceLastCollision = 0.0f;
 
-        // Reduce ship health on collision
-        shipHealth -= 10;
+    // Reduce ship health on collision
+    shipHealth -= 10;
 
-        // Game over condition
-        if (shipHealth <= 0) {
-            cerr << "[GAME OVER] Ship destroyed!" << endl;
-            // END GAME LOGIC
-        }
+    // Print debug message to confirm callback is working
+    std::cout << "Collision handled! Ship health: " << shipHealth << std::endl;
+
+    // Game over condition
+    if (shipHealth <= 0) {
+        std::cerr << "[GAME OVER] Ship destroyed!" << std::endl;
+        // END GAME LOGIC
     }
 }
+
 
 void SceneBasic_Uniform::render() {
     // First pass: render scene to HDR framebuffer
