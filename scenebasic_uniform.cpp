@@ -122,7 +122,7 @@ void SceneBasic_Uniform::initScene() {
 
     // Use the same scale factor that's used for rendering (100.0f)
     float modelVisualScale = 100.0f;
-    float shipRadius = glm::length(modelBBox.max - modelBBox.min) * 0.5f * modelVisualScale;
+    float shipRadius = (glm::length(modelBBox.max - modelBBox.min) / 3.5f) * modelVisualScale;
 
     std::cout << "Ship model bounds: min=("
         << modelBBox.min.x << "," << modelBBox.min.y << "," << modelBBox.min.z

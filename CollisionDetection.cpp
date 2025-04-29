@@ -67,79 +67,67 @@ void CollisionDetection::update(float deltaTime) {
 bool CollisionDetection::checkShipAsteroidCollisions() {
     if (!shipController || !asteroidManager) return false;
 
-    // Get ship's current position
     glm::vec3 shipPosition = shipController->getPosition();
-
-    // Get all asteroids in the world
     const std::vector<Asteroid>& asteroids = asteroidManager->getAsteroids();
-
-    // Get the base asteroid mesh bounding box to calculate sizes
     const Aabb baseMeshBox = asteroidManager->getBaseMeshBoundingBox();
-    glm::vec3 baseMeshSize = baseMeshBox.max - baseMeshBox.min;
 
-    // Debug info - only print occasionally
-    static int frameCounter = 0;
-    if (frameCounter++ % 300 == 0) { // Print every ~5 seconds at 60 fps
-        std::cout << "Ship position: (" << shipPosition.x << ", "
-            << shipPosition.y << ", " << shipPosition.z << ")" << std::endl;
-        std::cout << "Checking collisions with " << asteroids.size() << " asteroids" << std::endl;
-    }
-
-    // Check each asteroid for collision with the ship
     for (const auto& asteroid : asteroids) {
-        // Calculate asteroid's size based on its scale
-        glm::vec3 scaledSize = glm::vec3(
-            baseMeshSize.x * asteroid.scale.x,
-            baseMeshSize.y * asteroid.scale.y,
-            baseMeshSize.z * asteroid.scale.z
-        );
+        // Calculate asteroid's world AABB - using only one set of variables
+        glm::vec3 boxMin = baseMeshBox.min;
+        glm::vec3 boxMax = baseMeshBox.max;
+        glm::vec3 scaledMin = boxMin * asteroid.scale;
+        glm::vec3 scaledMax = boxMax * asteroid.scale;
+        glm::vec3 worldMin = asteroid.position + scaledMin;
+        glm::vec3 worldMax = asteroid.position + scaledMax;
 
-        // Calculate the asteroid's collision radius using the diagonal length of the scaled mesh
-        float asteroidRadius = glm::length(scaledSize) * 0.5f * 0.8f; // Use diagonal length for better approximation
+        glm::vec3 closestPoint;
 
-        // Calculate combined collision radius (ship + asteroid) with scaling factor
-        float combinedRadius = (shipRadius + asteroidRadius) * COLLISION_SCALE_FACTOR;
+        // For X component
+        if (shipPosition.x < worldMin.x)
+            closestPoint.x = worldMin.x;
+        else if (shipPosition.x > worldMax.x)
+            closestPoint.x = worldMax.x;
+        else
+            closestPoint.x = shipPosition.x;
 
-        // Calculate distance between ship and asteroid centers
-        float distance = glm::length(asteroid.position - shipPosition);
+        // For Y component
+        if (shipPosition.y < worldMin.y)
+            closestPoint.y = worldMin.y;
+        else if (shipPosition.y > worldMax.y)
+            closestPoint.y = worldMax.y;
+        else
+            closestPoint.y = shipPosition.y;
+
+        // For Z component
+        if (shipPosition.z < worldMin.z)
+            closestPoint.z = worldMin.z;
+        else if (shipPosition.z > worldMax.z)
+            closestPoint.z = worldMax.z;
+        else
+            closestPoint.z = shipPosition.z;
+
+        // Calculate distance from ship to closest point on AABB
+        float distance = glm::length(closestPoint - shipPosition);
+        float effectiveShipRadius = shipRadius * COLLISION_SCALE_FACTOR;
 
         // Debug output for close asteroids
-        if (distance < combinedRadius * 1.5f) {
-            std::cout << "Close asteroid at: (" << asteroid.position.x << ", "
-                << asteroid.position.y << ", " << asteroid.position.z << ")" << std::endl;
-            std::cout << "Distance: " << distance << ", Required: " << combinedRadius << std::endl;
+        if (distance < effectiveShipRadius * 1.5f) {
+            std::cout << "Close asteroid AABB point: (" << closestPoint.x << ", "
+                << closestPoint.y << ", " << closestPoint.z << ")\n";
+            std::cout << "Distance: " << distance << ", Required: " << effectiveShipRadius << std::endl;
         }
 
-        // Simple distance check for collision
-        if (distance < combinedRadius) {
-            // Collision detected!
+        // Check collision
+        if (distance < effectiveShipRadius) {
             collisionDetected = true;
             timeSinceLastCollision = 0.0f;
-
-            // Print detailed collision info
-            std::cout << "=================== COLLISION DETECTED =================" << std::endl;
-            std::cout << "Asteroid position: (" << asteroid.position.x << ", "
-                << asteroid.position.y << ", " << asteroid.position.z << ")" << std::endl;
-            std::cout << "Ship position: (" << shipPosition.x << ", "
-                << shipPosition.y << ", " << shipPosition.z << ")" << std::endl;
-            std::cout << "Distance between centers: " << distance << std::endl;
-            std::cout << "Combined radii: " << combinedRadius << " (scaled from original: "
-                << (shipRadius + asteroidRadius) << ")" << std::endl;
-            std::cout << "Asteroid scale: (" << asteroid.scale.x << ", "
-                << asteroid.scale.y << ", " << asteroid.scale.z << ")" << std::endl;
-            std::cout << "=======================================================" << std::endl;
-
-            // Trigger collision callback if registered
-            if (onCollision) {
-                onCollision(asteroid);
-            }
 
             return true;
         }
     }
-
     return false;
 }
+
 
 bool CollisionDetection::sphereToSphereCollision(const BoundingSphere& a, const BoundingSphere& b) {
     float distance = glm::length(a.center - b.center);
