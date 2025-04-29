@@ -3,6 +3,14 @@ This is my OpenGL project called dead space. It is for my 3015 submission under 
 
 I should also mention that this project was developed from a template provided by the university. This template served as a framework providing tools such as mesh and texture loading, scene management etc. However, all work displayed in the scene was achieved soley by myself.
 
+# System Info
+
+Visual studio 2022
+Windows 10
+OpenGL: 4.6
+GLSL: 4.60
+GPU: RX 6800 (AMD)
+
 # Controls
 
 WASD to move, Q and E to rotate left and right.
@@ -143,6 +151,18 @@ This class does the following:
 ![image](https://github.com/user-attachments/assets/bb811868-dde7-4283-9476-6c87e27e0794)
 
 ![image](https://github.com/user-attachments/assets/c7660a0f-eb34-4e10-886f-814113e92aa0)
+
+# Inspiration
+
+My aim was to capture the lost in space vibe you get from old scifi movies such as Alien (1979) / Aliens (1986).
+
+# Reflection
+
+My only gripe with this project is the spaceship model. It is the most unoptimised model I have ever worked with and it heavily contributes to the start up time of the project.
+
+Furthermore, there is currently a strange bug that can't be replicated where collisions do not seem to work accurately when this project is ran on other machines. This will be investigated in the near future.
+
+# Youtube Link:
 
 
 
