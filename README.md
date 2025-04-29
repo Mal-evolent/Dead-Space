@@ -6,9 +6,13 @@ I should also mention that this project was developed from a template provided b
 # System Info
 
 Visual studio 2022
+
 Windows 10
+
 OpenGL: 4.6
+
 GLSL: 4.60
+
 GPU: RX 6800 (AMD)
 
 # Controls
