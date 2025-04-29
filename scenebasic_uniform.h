@@ -86,6 +86,9 @@ private:
     void renderAsteroid();      // Render asteroid field
     void renderQuad();          // Render screen quad for post-processing
 
+    // ======== Window Reference ========
+    GLFWwindow* window = nullptr; // Reference to the GLFW window
+
 public:
     // ======== Constructor/Destructor ========
     SceneBasic_Uniform();
@@ -99,6 +102,11 @@ public:
     void update(float t) override;
     void render() override;
     void resize(int w, int h) override;
+    void printGameOver();
+
+    // ======== Window Management ========
+    void setWindow(GLFWwindow* win) { window = win; }
+
 };
 
 #endif // SCENEBASIC_UNIFORM_H

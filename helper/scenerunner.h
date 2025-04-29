@@ -107,6 +107,10 @@ public:
         return recipeName;
     }
 
+    GLFWwindow* getWindow() {
+        return window;
+    }
+
 private:
     static void printHelpInfo(const char * exeFile,  std::map<std::string, std::string> & sceneData) {
         printf("Usage: %s recipe-name\n\n", exeFile);

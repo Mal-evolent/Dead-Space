@@ -9,10 +9,10 @@ int main(int argc, char* argv[])
 {
 	SceneRunner runner("Shader_Basics");
 
-	std::unique_ptr<Scene> scene;
+	std::unique_ptr<SceneBasic_Uniform> scene = std::make_unique<SceneBasic_Uniform>();
 
-	scene = std::unique_ptr<Scene>(new SceneBasic_Uniform());
-
+	// Set window pointer before running the scene
+	scene->setWindow(runner.getWindow());
 
 	return runner.run(*scene);
 }

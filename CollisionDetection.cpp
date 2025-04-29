@@ -122,11 +122,17 @@ bool CollisionDetection::checkShipAsteroidCollisions() {
             collisionDetected = true;
             timeSinceLastCollision = 0.0f;
 
+            // Call the collision callback if it exists
+            if (onCollision) {
+                onCollision(asteroid);
+            }
+
             return true;
         }
     }
     return false;
 }
+
 
 
 bool CollisionDetection::sphereToSphereCollision(const BoundingSphere& a, const BoundingSphere& b) {

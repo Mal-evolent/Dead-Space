@@ -1,4 +1,4 @@
-#include "scenebasic_uniform.h"
+﻿#include "scenebasic_uniform.h"
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
@@ -133,7 +133,12 @@ void SceneBasic_Uniform::initScene() {
 
     collisionSystem.initialize(&shipController, &asteroidManager, shipRadius);
 
+    // Set the collision callback to call our handleCollision method
+    collisionSystem.setCollisionCallback([this](const Asteroid& asteroid) {
+        this->handleCollision(asteroid);
+        });
 }
+
 
 void SceneBasic_Uniform::update(float t) {
     float deltaTime = t - prevTime;
@@ -220,8 +225,14 @@ void SceneBasic_Uniform::handleCollision(const Asteroid& asteroid) {
 
     // Game over condition
     if (shipHealth <= 0) {
+        // Display fancy ASCII art game over message
+        printGameOver();
         std::cerr << "[GAME OVER] Ship destroyed!" << std::endl;
-        // END GAME LOGIC
+
+        // Close the OpenGL window but keep console open
+        if (window != nullptr) {
+            glfwSetWindowShouldClose(window, GLFW_TRUE);
+        }
     }
 }
 
@@ -319,6 +330,19 @@ void SceneBasic_Uniform::render() {
     renderQuad();
     glEnable(GL_DEPTH_TEST);
 }
+
+void SceneBasic_Uniform::printGameOver() {
+    std::cout << "\n\n";
+    std::cout << " ██████╗  █████╗ ███╗   ███╗███████╗     ██████╗ ██╗   ██╗███████╗██████╗ \n";
+    std::cout << "██╔════╝ ██╔══██╗████╗ ████║██╔════╝    ██╔═══██╗██║   ██║██╔════╝██╔══██╗\n";
+    std::cout << "██║  ███╗███████║██╔████╔██║█████╗      ██║   ██║██║   ██║█████╗  ██████╔╝\n";
+    std::cout << "██║   ██║██╔══██║██║╚██╔╝██║██╔══╝      ██║   ██║╚██╗ ██╔╝██╔══╝  ██╔══██╗\n";
+    std::cout << "╚██████╔╝██║  ██║██║ ╚═╝ ██║███████╗    ╚██████╔╝ ╚████╔╝ ███████╗██║  ██║\n";
+    std::cout << " ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝     ╚═════╝   ╚═══╝  ╚══════╝╚═╝  ╚═╝\n";
+    std::cout << "\n                      YOUR SHIP HAS BEEN DESTROYED!                      \n";
+    std::cout << "\n\n";
+}
+
 
 void SceneBasic_Uniform::renderAsteroid() {
     // Calculate the light position
