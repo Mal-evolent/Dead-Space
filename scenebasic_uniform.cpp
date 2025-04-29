@@ -289,17 +289,6 @@ void SceneBasic_Uniform::render() {
 
     projection = glm::perspective(glm::radians(75.0f), (float)width / height, 0.1f, 50000.0f);
 
-    // Apply screen shake if collision was detected
-    if (collisionDetected && timeSinceLastCollision < 0.5f) {
-        // Simple screen shake effect - subtle random offsets
-        float shakeMagnitude = 0.3f * (0.5f - timeSinceLastCollision);
-        float offsetX = ((rand() % 1000) / 1000.0f - 0.5f) * shakeMagnitude;
-        float offsetY = ((rand() % 1000) / 1000.0f - 0.5f) * shakeMagnitude;
-
-        // Apply shake to view matrix
-        view = glm::translate(view, vec3(offsetX, offsetY, 0.0f));
-    }
-
     renderSkybox();
     renderModel();
     renderAsteroid();

@@ -20,7 +20,7 @@
 // Add a collision scaling factor to reduce the effective collision distance
 // Adjust this value between 0.0 and 1.0 to control collision sensitivity
 // Lower values require objects to be closer for collision
-const float COLLISION_SCALE_FACTOR = 0.4f;
+const float COLLISION_SCALE_FACTOR = 0.5f;
 
 CollisionDetection::CollisionDetection() :
     shipController(nullptr),
