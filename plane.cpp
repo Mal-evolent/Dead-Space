@@ -1,7 +1,6 @@
 #include "plane.h"
-#include "glutils.h"
 #include <glad/glad.h>
-#include "glutils.h"
+#include "helper/glutils.h"
 
 #include <cstdio>
 #include <cmath>
