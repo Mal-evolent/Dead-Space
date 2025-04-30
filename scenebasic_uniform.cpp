@@ -29,7 +29,7 @@ SceneBasic_Uniform::SceneBasic_Uniform() :
     lightRadiusOffset(0.5f),
     lightRadiusSpeed(0.2f),
     lightRadius(800.0f),
-    lightIntensity(5.0f),
+    lightIntensity(2.0f),
     asteroidManager(&astroidProgram),
     collisionDetected(false),
     timeSinceLastCollision(0.0f),

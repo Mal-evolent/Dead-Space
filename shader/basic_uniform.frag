@@ -97,7 +97,7 @@ void main()
     // Combine channels
     vec3 albedo = vec3(albedoR.r, albedoG.g, albedoB.b);
     // Using reference shader's exact albedo brightness
-    albedo *= 0.3;
+    albedo *= 1.0;
 
     // material parameter handling
     float metallic = texture(metallicMap, TexCoords).r;
@@ -105,7 +105,7 @@ void main()
     float ao = texture(aoMap, TexCoords).r;
 
     //normal mapping
-    vec3 N = getNormalFromMap();
+    vec3 N = normalize(TBN[2]); // or use vec3 N = normalize(TBN * vec3(0, 0, 1));
     vec3 V = normalize(viewPos - FragPos);
     
     // F0 calculation
