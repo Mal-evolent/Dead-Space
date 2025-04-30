@@ -15,6 +15,8 @@ GLSL: 4.60
 
 GPU: RX 6800 (AMD)
 
+===== Make sure you run this in debug mode if you wish to test! =====
+
 # Controls
 
 WASD to move, Q and E to rotate left and right.
