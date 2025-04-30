@@ -1,3 +1,4 @@
+#define GLM_ENABLE_EXPERIMENTAL 
 #include "CollisionDetection.h"
 #include "ShipController.h"
 #include "Asteroid.h"

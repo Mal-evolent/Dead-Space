@@ -1,4 +1,5 @@
-﻿#include "scenebasic_uniform.h"
+﻿#define GLM_ENABLE_EXPERIMENTAL 
+#include "scenebasic_uniform.h"
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>

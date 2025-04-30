@@ -1,3 +1,4 @@
+#define GLM_ENABLE_EXPERIMENTAL 
 #include "ShipController.h"
 #include <iostream>
 #include <glm/gtc/matrix_transform.hpp>

@@ -1,7 +1,5 @@
 #include "glslprogram.h"
-
 #include "glutils.h"
-
 #include <fstream>
 
 using std::ifstream;

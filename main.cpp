@@ -1,4 +1,5 @@
 #define GLFW_INCLUDE_NONE
+#define GLM_ENABLE_EXPERIMENTAL 
 #include "helper/scene.h"
 #include "helper/scenerunner.h"
 #include "scenebasic_uniform.h"

@@ -1,3 +1,4 @@
+#define GLM_ENABLE_EXPERIMENTAL 
 #include "Asteroid.h"
 #include "texture.h"
 #include <iostream>
